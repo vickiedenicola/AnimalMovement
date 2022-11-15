@@ -194,6 +194,14 @@ max(outliers.SI[[5]]$speed) * 100
 data.SI.tel <- readRDS("Data/processed/telemetry.SI.cleaned.rds")
 data.RF.tel <- readRDS("Data/processed/telemetry.RF.cleaned.rds")
 
+
+
+
+
+
+# Example
+# --------------------------------------------------------
+
 # Fitting with calibrated data
 # --------------------------------------------------------
 

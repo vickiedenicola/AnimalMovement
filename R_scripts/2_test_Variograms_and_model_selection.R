@@ -42,21 +42,23 @@ dim(data.raw)
 data.subset <- subset_func(dataset = data.raw,
             time_period = "Breeding",
             male_female = "M",
-            study_area = "Staten Island",
-            animal_color = "W")
+            study_area = "Rockefeller",
+            )# animal_color = "W"
 
 unique(data.subset$`individual-local-identifier`)
 unique(data.subset$`tag-local-identifier`)
 
 plot_individual(df.site = data.subset, ind.id = unique(data.subset$`individual-local-identifier`))
 mapviewOptions(fgb = FALSE)
-map_individual(df.site = data.subset, ind.id = unique(data.subset$`individual-local-identifier`), burst = TRUE)
+
+map_individual(df.site = data.subset, ind.id = unique(data.subset$`individual-local-identifier`), burst = FALSE)
+map_individual(df.site = data.subset, ind.id = c("63"), burst = FALSE)
 
 # As telemetry object
 # ------------------------------------------------------------------------------
 
 data.tel <- as.telemetry(data.subset, datum = 'EPSG:4326')
-
+names(data.tel)
 
 # Calibrate tracking data and remove outliers
 # ------------------------------------------------------------------------------
@@ -92,7 +94,7 @@ summary(data.tel)
 
 # Calculate convex hull
 # ------------------------------------------------------------------------------
-deer <- as.sf(data.tel[[1]], 
+deer <- as.sf(data.tel[[7]], 
               error = FALSE)
 
 deer %<>% st_transform(4326)
@@ -123,7 +125,7 @@ as.numeric(area.m2)/1000000 # 1.165759 km2
 
 # ------------------------------------------------------------------------------
 
-first_deer <- data.tel[[1]]
+first_deer <- data.tel[[7]]
 plot(first_deer)
 
 # Variograms

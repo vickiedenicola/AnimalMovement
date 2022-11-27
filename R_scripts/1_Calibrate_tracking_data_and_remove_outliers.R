@@ -231,9 +231,40 @@ summary(FIT)
 
 
 
+# Calculate convex hull
+# --------------------------------------------------------
 
 
+# https://ctmm-initiative.github.io/ctmm/reference/export.html
 
+deer <- data.SI.tel[[1]] %>% as.data.frame()
+deer <- as.sf(data.SI.tel[[1]], 
+              error = FALSE)
+
+deer %<>% st_transform(4326)
+mapview(deer)
+
+library(tmap)
+library(sf)
+
+qtm(deer)
+
+ch <- st_convex_hull(st_union(deer)) 
+qtm(ch)
+
+mapview(deer) + mapview(ch, col.regions = "red")
+
+area.m2 <- ch %>% st_area(.) # 1134 ha
+as.numeric(area.m2)/1000000 # 11.3 km2
+
+# in CRS in projection
+deer_proj <- deer %<>% st_transform(3857)
+ch_proj <- st_convex_hull(st_union(deer_proj)) 
+
+mapview(deer_proj) + mapview(ch_proj, col.regions = "red")
+
+area.m2 <- ch_proj %>% st_area(.) # 1970 ha
+as.numeric(area.m2)/1000000 # 19.7 km2
 
 
 

@@ -70,8 +70,14 @@ title("Population variogram")
 # --------------------------------------------------------
 # https://cran.r-project.org/web/packages/ctmm/vignettes/variogram.html
 
-GUESS_manual <- variogram.fit(SVF)
 
+
+GUESS_manual <- variogram.fit(SVF)
+# there is a option to manualy fit the variogram
+
+
+# Without error model included
+# --------------------------------------------------------
 
 # ctmm.select considers the initial guess (hypothesis) and then iterates 
 # this model to select the best model based upon an information criteria.
@@ -82,24 +88,57 @@ M.OUF <- ctmm.fit(first_deer, GUESS) # in general, use ctmm.select instead
 FIT <- ctmm.select(first_deer, GUESS, trace = 3, verbose=TRUE)
 
 summary(M.OUF)
+summary(M.OUF)$CI %>% as.data.frame()
 summary(FIT)
 
+
 # With error model included
+# --------------------------------------------------------
 
 # M.IID.e <- ctmm.fit(first_deer) # no autocorrelation timescales
 GUESS.e <- ctmm.guess(first_deer, CTMM = ctmm(error = TRUE), interactive=FALSE) # automated model guess CTMM = ctmm(error = TRUE)
 M.OUF.e <- ctmm.fit(first_deer, GUESS.e) # in general, use ctmm.select instead
-FIT.d1.e <- ctmm.select(first_deer, GUESS.e, trace = 3, verbose=TRUE)
-FIT.d1.e1 <- ctmm.select(first_deer, GUESS.e, trace = TRUE)
+FIT.with.error <- ctmm.select(first_deer, GUESS.e, trace = 3, verbose=TRUE)
+# FIT.d1.e1 <- ctmm.select(first_deer, GUESS.e, trace = TRUE)
 
 summary(M.OUF.e)
-summary(FIT.d1.e)
-summary(FIT.d1.e1)
+summary(FIT.with.error)
+
+
+
+# NOTES
+# --------------------------------------------------------
+
+# it takes too long with error included more than 1.5h
+
+# Possibilities:
+
+# - thin the data per individual - inoformations will not be lost
+# - use the same model (established from one individual) to all others
+# - do not use the error model and use only ctmm.fit not ctmm.select
+# - if use error model, compare with and without assigning dof values
+
+# Make report - presentation what is done
+
+
+# AKDE
+# --------------------------------------------------------
 
 AKDE.e <- akde(first_deer, FIT.d1.e) # AKDE
 summary(AKDE.e)
 summary(AKDE)
 # saveRDS(M.OUF, "Data/processed/model_first.deer.rds")
+
+plot(SVF,CTMM=GUESS,col.CTMM=c("red"),fraction=0.65,level=0.5)
+title("zoomed out")
+plot(SVF,CTMM=GUESS,col.CTMM=c("red"),xlim=xlim,level=0.5)
+title("zoomed in")
+
+plot(SVF,CTMM=GUESS.e,col.CTMM=c("red"),fraction=0.65,level=0.5)
+title("zoomed out")
+plot(SVF,CTMM=GUESS.e,col.CTMM=c("red"),xlim=xlim,level=0.5)
+title("zoomed in")
+
 
 
 plot(SVF,CTMM=M.OUF,col.CTMM=c("red"),fraction=0.65,level=0.5)
@@ -107,7 +146,7 @@ title("zoomed out")
 plot(SVF,CTMM=M.OUF,col.CTMM=c("red"),xlim=xlim,level=0.5)
 title("zoomed in")
 
-plot(SVF,CTMM=FIT,col.CTMM=c("red","purple","blue"),fraction=0.65,level=0.5)
+plot(SVF,CTMM=FIT, col.CTMM=c("red","purple","blue"),fraction=0.65,level=0.5)
 title("zoomed out")
 plot(SVF,CTMM=FIT,col.CTMM=c("red","purple","blue"),xlim=xlim,level=0.5)
 title("zoomed in")
@@ -137,9 +176,8 @@ for(i in 1:length(data.SI.tel)){
 names(FIT) <- names(data.SI.tel)
 FIT[[1]] 
 
-# TODO calculate area of convex hull around points of one deer
+# TODO calculate area of convex hull around points of one deer - DONE
 # --------------------------------------------------------
-
 
 
 

@@ -65,16 +65,124 @@ title("OUF AKDE")
 
 breeding.period$control
 
+library(ctmmweb)
+
+plot_ud(UD_list = breeding.period$control$akde.objects[1],
+        level_vec = 0.95,
+        color_vec = viridis::viridis(length(breeding.period$control$akde.objects[1])),
+        # option = c("contour", "interval", "location"), #  "contour", "interval", "location"
+        columns = 1,
+        cex = 0.65,
+        tele_list = breeding.period$control$telemetry.objects[1])
 
 
+plot_ud(UD_list = breeding.period$control$akde.objects[5:7],
+        level_vec = 0.95,
+        color_vec = viridis::viridis(length(breeding.period$control$akde.objects)),
+        # option = c("contour", "interval", "location"), #  "contour", "interval", "location"
+        columns = 1,
+        cex = 0.65,
+        tele_list = breeding.period$control$telemetry.objects[5:7])
 
 
+c.akde <- breeding.period$control$akde.objects
+names(c.akde) <- names.list_c
+png("Results/Rplot_control_AKDE_breeding_males.png", width = 25, height = 30, units='cm', res = 600)
+plot_ud(UD_list = c.akde,
+        level_vec = 0.95,
+        color_vec = viridis::viridis(length(c.akde)),
+        option = c("contour", "interval", "location"), #  "contour", "interval", "location"
+        columns = 2,
+        cex = 0.65,
+        tele_list = breeding.period$control$telemetry.objects) 
+dev.off()
 
 
+t.akde <- breeding.period$treatment$akde.objects
+names(t.akde) <- names.list_t
+
+png("Results/Rplot_treatment_AKDE_breeding_males.png", width = 25, height = 40, units='cm', res = 600)
+plot_ud(UD_list = t.akde,
+        level_vec = 0.95,
+        color_vec = viridis::viridis(length(t.akde)),
+        option = c("contour", "interval", "location"), #  "contour", "interval", "location"
+        columns = 2,
+        cex = 0.65,
+        tele_list = breeding.period$treatment$telemetry.objects) 
+dev.off()
 
 
+png("Results/Rplot_results_AKDE_breeding_males.png", width = 25, height = 18, units='cm', res = 600)
+
+par(mfrow = c(1, 2))
+
+# home range area
+ctmm::meta(breeding.period$control$akde.objects, 
+           sort = TRUE, 
+           col = viridis::viridis(length(breeding.period$control$akde.objects))) + 
+  title("AKDE Home range area\nRockefeller population (control site)", sub = "Breeding period - MALE population") 
+
+ctmm::meta(breeding.period$treatment$akde.objects, 
+           sort = TRUE, 
+           col = viridis::viridis(length(breeding.period$treatment$akde.objects))) +
+  title("AKDE Home range area\nStaten Island population (treatment site)", sub = "Breeding period - MALE population")
+
+dev.off()
+
+par(mfrow = c(1, 1))
+
+summary(breeding.period$treatment$akde.objects[[5]])
+
+# TODO fix period dates
+# TODO save from compare functions fit or select objects in list
+# TODO fix adding names 
+# TODO fix units in summary (upit po rowname)
+# TODO save plots (make unique folder)
+
+# TODO meta - variable = "speed"
+
+# TODO make ggplot function - compare speed, distance and area (first fix function)
 
 
+# all
+ctmm::meta(c(breeding.period$control$akde.objects,breeding.period$treatment$akde.objects), 
+           sort = TRUE, 
+           col = viridis::viridis(length(c(breeding.period$control$akde.objects,breeding.period$treatment$akde.objects)))) 
+  
+
+# Plots
+
+names.list_c <- list()
+for(i in 1:length(breeding.period$control$akde.objects)){
+  names.list_c[[i]] <- breeding.period$control$akde.objects[[i]]@info$identity
+}
+
+names.list_t <- list()
+for(i in 1:length(breeding.period$treatment$akde.objects)){
+  names.list_t[[i]] <- breeding.period$treatment$akde.objects[[i]]@info$identity
+}
+
+png("Results/Rplot_maps_AKDE_breeding_males.png", width = 25, height = 18, units='cm', res = 600)
+
+par(mfrow = c(1, 2))
+
+plot(breeding.period$control$akde.objects, 
+     col.DF = viridis::viridis(length(breeding.period$control$akde.objects)), 
+     col.level = viridis::viridis(length(breeding.period$control$akde.objects)), 
+     col.grid = NA, 
+     level = NA, 
+     labels = names.list_c) +
+  title("AKDE Home range area\nRockefeller population (control site)", sub = "Breeding period - MALE population") 
+
+plot(breeding.period$treatment$akde.objects, 
+     col.DF = viridis::viridis(length(breeding.period$treatment$akde.objects)), 
+     col.level = viridis::viridis(length(breeding.period$treatment$akde.objects)), 
+     col.grid = NA, 
+     level = NA, 
+     labels = names.list_t) +
+  title("AKDE Home range area\nStaten Island population (treatment site)", sub = "Breeding period - MALE population")
 
 
+dev.off()
 
+par(mfrow = c(1, 1))

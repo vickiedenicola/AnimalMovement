@@ -52,7 +52,7 @@ plot_individual(df.site = data.subset, ind.id = unique(data.subset$`individual-l
 mapviewOptions(fgb = FALSE)
 
 map_individual(df.site = data.subset, ind.id = unique(data.subset$`individual-local-identifier`), burst = FALSE)
-map_individual(df.site = data.subset, ind.id = c("63"), burst = FALSE)
+map_individual(df.site = data.subset, ind.id = c("53"), burst = FALSE)
 
 # As telemetry object
 # ------------------------------------------------------------------------------

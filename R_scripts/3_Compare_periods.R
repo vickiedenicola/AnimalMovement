@@ -15,12 +15,16 @@ library(ggspatial)
 library(writexl)
 library(gridExtra)
 
-# Additional packages
+# Movement packages
 
 library(move)
 library(ctmm)
+library(ctmmweb)
 
 source("R_scripts/functions.R")
+
+# Read the data
+# ------------------------------------------------------------------------------
 
 data.raw <- data.table::fread("Data/processed/dataset.Odocoileus.virginianus.filtered.csv", stringsAsFactors = FALSE, header = TRUE) %>% 
   as.data.frame()
@@ -29,25 +33,30 @@ UERE <- readRDS("Data/undep/calibration.error.model.rds")
 
 calibration_model <- UERE
 
+# Compare periods
+# ------------------------------------------------------------------------------
+
 breeding.period <- compare_periods(input.data = data.raw, 
                                    period = "Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
                                    male_female = "M", # c("M", "F")
                                    use.ctmm = "fit", # c("fit", "select")
                                    cal.model = calibration_model)
 
+# ------------------------------------------------------------------------------
+
 breeding.period <- readRDS("Results/breeding.period.RDS")
 
 
-writexl::write_xlsx(breeding.period$treatment$summary, "Results/comparasion.breeding.period_treatment.site_summary.xlsx")
-writexl::write_xlsx(breeding.period$treatment$akde, "Results/comparasion.breeding.period_treatment.site_akde.xlsx")
-writexl::write_xlsx(breeding.period$treatment$speed.dist, "Results/comparasion.breeding.period_treatment.site_speed_dist.xlsx")
-
-
-writexl::write_xlsx(breeding.period$control$summary, "Results/comparasion.breeding.period_control.site_summary.xlsx")
-writexl::write_xlsx(breeding.period$control$akde, "Results/comparasion.breeding.period_control.site_akde.xlsx")
-writexl::write_xlsx(breeding.period$control$speed.dist, "Results/comparasion.breeding.period_control.site_speed_dist.xlsx")
-
-saveRDS(breeding.period, "Results/breeding.period.RDS")
+# writexl::write_xlsx(breeding.period$treatment$summary, "Results/comparasion.breeding.period_treatment.site_summary.xlsx")
+# writexl::write_xlsx(breeding.period$treatment$akde, "Results/comparasion.breeding.period_treatment.site_akde.xlsx")
+# writexl::write_xlsx(breeding.period$treatment$speed.dist, "Results/comparasion.breeding.period_treatment.site_speed_dist.xlsx")
+# 
+# 
+# writexl::write_xlsx(breeding.period$control$summary, "Results/comparasion.breeding.period_control.site_summary.xlsx")
+# writexl::write_xlsx(breeding.period$control$akde, "Results/comparasion.breeding.period_control.site_akde.xlsx")
+# writexl::write_xlsx(breeding.period$control$speed.dist, "Results/comparasion.breeding.period_control.site_speed_dist.xlsx")
+# 
+# saveRDS(breeding.period, "Results/breeding.period.RDS")
 
 # grid.arrange(breeding.period$treatment$plot, breeding.period$control$plot, ncol = 2)
 
@@ -63,9 +72,42 @@ plot(breeding.period$control$telemetry.objects[[3]], UD = breeding.period$contro
 title("OUF AKDE")
 
 
-breeding.period$control
+# optional - remove 53
+# ------------------------------------------------------------------------------
+control.list <- list()
 
-library(ctmmweb)
+for(i in 1:length(breeding.period$control$akde.objects)){
+  if(!(breeding.period$control$akde.objects[[i]]@info$identity == "53")){
+    control.list[[i]] <- breeding.period$control$akde.objects[[i]]
+  }
+}
+
+
+names(control.list) <- seq_along(control.list)
+
+## Using some higher-order convenience functions
+control.list <- Filter(Negate(is.null), control.list)
+length(control.list)
+
+breeding.period$control$akde.objects <- control.list
+
+# ------------------------------------------------------------------------------
+
+
+
+names.list_c <- list()
+for(i in 1:length(breeding.period$control$akde.objects)){
+  names.list_c[[i]] <- breeding.period$control$akde.objects[[i]]@info$identity
+}
+
+names(breeding.period$control$akde.objects) <- names.list_c
+
+names.list_t <- list()
+for(i in 1:length(breeding.period$treatment$akde.objects)){
+  names.list_t[[i]] <- breeding.period$treatment$akde.objects[[i]]@info$identity
+}
+
+names(breeding.period$treatment$akde.objects) <- names.list_t
 
 plot_ud(UD_list = breeding.period$control$akde.objects[1],
         level_vec = 0.95,
@@ -87,7 +129,7 @@ plot_ud(UD_list = breeding.period$control$akde.objects[5:7],
 
 c.akde <- breeding.period$control$akde.objects
 names(c.akde) <- names.list_c
-png("Results/Rplot_control_AKDE_breeding_males.png", width = 25, height = 30, units='cm', res = 600)
+# png("Results/Rplot_control_AKDE_breeding_males.png", width = 25, height = 30, units='cm', res = 600)
 plot_ud(UD_list = c.akde,
         level_vec = 0.95,
         color_vec = viridis::viridis(length(c.akde)),
@@ -101,7 +143,7 @@ dev.off()
 t.akde <- breeding.period$treatment$akde.objects
 names(t.akde) <- names.list_t
 
-png("Results/Rplot_treatment_AKDE_breeding_males.png", width = 25, height = 40, units='cm', res = 600)
+# png("Results/Rplot_treatment_AKDE_breeding_males.png", width = 25, height = 40, units='cm', res = 600)
 plot_ud(UD_list = t.akde,
         level_vec = 0.95,
         color_vec = viridis::viridis(length(t.akde)),
@@ -112,7 +154,7 @@ plot_ud(UD_list = t.akde,
 dev.off()
 
 
-png("Results/Rplot_results_AKDE_breeding_males.png", width = 25, height = 18, units='cm', res = 600)
+png("Results/Rplot_results_AKDE_breeding_males_without53.png", width = 25, height = 18, units='cm', res = 600)
 
 par(mfrow = c(1, 2))
 
@@ -135,34 +177,27 @@ summary(breeding.period$treatment$akde.objects[[5]])
 
 # TODO fix period dates
 # TODO save from compare functions fit or select objects in list
-# TODO fix adding names 
-# TODO fix units in summary (upit po rowname)
+# TODO fix adding names - iz liste iz identity i onda to dodaj i u names liste
+# TODO fix units in summary (upit po rowname ili row name dodaj kao novu kolonu)
 # TODO save plots (make unique folder)
 
 # TODO meta - variable = "speed"
 
-# TODO make ggplot function - compare speed, distance and area (first fix function)
+# TODO make ggplot function - compare speed, distance and area (first fix function to work on top of excel results)
 
 
 # all
+
+png("Results/Rplot_results_AKDE_breeding_males_all.png", width = 25, height = 18, units='cm', res = 600)
+par(mfrow = c(1, 1))
 ctmm::meta(c(breeding.period$control$akde.objects,breeding.period$treatment$akde.objects), 
            sort = TRUE, 
            col = viridis::viridis(length(c(breeding.period$control$akde.objects,breeding.period$treatment$akde.objects)))) 
-  
+dev.off()
 
 # Plots
 
-names.list_c <- list()
-for(i in 1:length(breeding.period$control$akde.objects)){
-  names.list_c[[i]] <- breeding.period$control$akde.objects[[i]]@info$identity
-}
-
-names.list_t <- list()
-for(i in 1:length(breeding.period$treatment$akde.objects)){
-  names.list_t[[i]] <- breeding.period$treatment$akde.objects[[i]]@info$identity
-}
-
-png("Results/Rplot_maps_AKDE_breeding_males.png", width = 25, height = 18, units='cm', res = 600)
+png("Results/Rplot_maps_AKDE_breeding_males_without53.png", width = 25, height = 18, units='cm', res = 600)
 
 par(mfrow = c(1, 2))
 
@@ -186,3 +221,20 @@ plot(breeding.period$treatment$akde.objects,
 dev.off()
 
 par(mfrow = c(1, 1))
+
+
+
+# ------------------------------------------------------------------------------
+
+breeding.period_F <- compare_periods(input.data = data.raw, 
+                                     period = "Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                     male_female = "F", # c("M", "F")
+                                     use.ctmm = "fit", # c("fit", "select")
+                                     cal.model = calibration_model,
+                                     export.folder = "C:/R_projects/AnimalMovement/Results/Breeding/Female") # absolute path
+
+
+
+
+
+

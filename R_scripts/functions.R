@@ -12,7 +12,7 @@ library(readxl)
 library(lubridate)
 library(stringr)
 library(ggspatial)
-
+library(gridExtra)
 # Additional packages
 
 library(move)
@@ -117,7 +117,7 @@ map_individual <- function(df.site = df.site, ind.id = c(), burst = FALSE){
 subset_func <- function(dataset = dataset, time_period = NA, male_female = NA, study_area = NA, animal_color = NA){
 
   time_periods <- data.frame(period_name = c("Pre Breeding", "Breeding", "Post Breeding", "Baseline"),
-                             start_date = c("2021-09-15", "2021-10-15", "2022-01-01", "2022-04-15"),
+                             start_date = c("2021-09-15", "2021-10-16", "2022-01-01", "2022-04-16"),
                              end_date = c("2021-10-15", "2021-12-31", "2022-04-15", "2022-05-30"))
 
   if(!is.na(study_area)){
@@ -154,7 +154,7 @@ subset_func <- function(dataset = dataset, time_period = NA, male_female = NA, s
 
 # cal.model <- UERE <- readRDS("Data/undep/calibration.error.model.rds")
 
-compare_periods <- function(input.data = input.data, period = c("Pre Breeding", "Breeding", "Post Breeding", "Baseline"), male_female = c("M", "F"), use.ctmm = c("fit", "select"), cal.model = NA){
+compare_periods <- function(input.data = input.data, period = c("Pre Breeding", "Breeding", "Post Breeding", "Baseline"), male_female = c("M", "F"), use.ctmm = c("fit", "select"), cal.model = NA, export.folder = ""){
   
   print("Subseting data to treatment and control sites.")
   
@@ -173,15 +173,34 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   plot.t <- plot_individual(df.site = data.subset.t, ind.id = unique(data.subset.t$`individual-local-identifier`))
   plot.c <- plot_individual(df.site = data.subset.c, ind.id = unique(data.subset.c$`individual-local-identifier`))
   
+  if(!is.na(export.folder)){
+    # export plots
+    # gr1 <- grid.arrange(plot.t, plot.c, ncol = 2)
+    ggsave(plot = plot.t,
+           filename = paste0(export.folder, "/", period, "_", male_female, "_plot.treatment.jpg"),
+           width = 45,
+           height = 40,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+    
+    ggsave(plot = plot.c,
+           filename = paste0(export.folder, "/", period, "_", male_female, "_plot.control.jpg"),
+           width = 45,
+           height = 40,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+  }
   
-  map.t <- map_individual(df.site = data.subset.t, ind.id = unique(data.subset.t$`individual-local-identifier`), burst = TRUE)
-  map.c <- map_individual(df.site = data.subset.c, ind.id = unique(data.subset.c$`individual-local-identifier`), burst = TRUE)
+  map.t <- map_individual(df.site = data.subset.t, ind.id = unique(data.subset.t$`individual-local-identifier`), burst = FALSE)
+  map.c <- map_individual(df.site = data.subset.c, ind.id = unique(data.subset.c$`individual-local-identifier`), burst = FALSE)
   
   data.tel.t <- as.telemetry(data.subset.t, datum = 'EPSG:4326')
   data.tel.c <- as.telemetry(data.subset.c, datum = 'EPSG:4326')
   
   
-  if(!is.na(cal.model)){
+  if(!is.null(cal.model)){
     UERE <- cal.model
     UERE$DOF[] <- UERE$UERE
     
@@ -190,7 +209,7 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   }
   
   
-  print("Detecting and remove outliers!")
+  print("Detecting and removing outliers!")
   
   # Outlier detection
   # ------------------------------------------------------------------------------
@@ -223,6 +242,24 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     print("------------------------------------------------------------------")
   }
   
+  
+  # Assign names
+  
+  names.list_t <- list()
+  for(i in 1:length(data.tel.t)){
+    names.list_t[[i]] <- data.tel.t[[i]]@info$identity
+  }
+  
+  names.list_c <- list()
+  for(i in 1:length(data.tel.c)){
+    names.list_c[[i]] <- data.tel.c[[i]]@info$identity
+  }
+  
+  
+  # names(data.tel.t) <- names.list_t
+  # names(data.tel.c) <- names.list_c
+  
+  
   print("Calculating variograms.")
   
   variogram_list.t <- list()
@@ -236,6 +273,8 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     variogram_list.c[[i]] <- variogram(data.tel.c[[i]], error = TRUE)
   }
   
+  names(variogram_list.t) <- names.list_t
+  names(variogram_list.c) <- names.list_c
   
   print(paste0("Model fitting using ctmm: ", use.ctmm, " method."))
   
@@ -249,6 +288,9 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   for(i in 1:length(data.tel.c)){
     guess_list.c[[i]] <- ctmm.guess(data.tel.c[[i]], variogram = variogram_list.c[[i]], CTMM = ctmm(error = TRUE, isotropic = TRUE), interactive = FALSE)
   }
+  
+  names(guess_list.t) <- names.list_t
+  names(guess_list.c) <- names.list_c
   
   if(use.ctmm == "fit"){
     
@@ -266,6 +308,9 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
       print(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
     }
     
+    names(fit_list.t) <- names.list_t
+    names(fit_list.c) <- names.list_c
+    
   } else if(use.ctmm == "select"){
     
     
@@ -282,6 +327,9 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
       print(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
     }
     
+    names(fit_list.t) <- names.list_t
+    names(fit_list.c) <- names.list_c
+    
   } else{
     print("Please provide valid method.")
     return()
@@ -289,9 +337,8 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   
   print("Model fitting DONE!")
   
-  ind.names.t <- unique(data.subset.t$`individual-local-identifier`)
-  ind.names.c <- unique(data.subset.c$`individual-local-identifier`)
-  
+  # ind.names.t <- unique(data.subset.t$`individual-local-identifier`)
+  # ind.names.c <- unique(data.subset.c$`individual-local-identifier`)
   
   print("Calculating summary statistics.")
   
@@ -299,19 +346,23 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   
   for(i in 1:length(data.tel.t)){
     summ.model <- summary(fit_list.t[[i]])$CI %>% as.data.frame()
-    summ_list.t[[i]] <- data.frame(ind.id = ind.names.t[i],
-                                   area.km2_low = summ.model[1, 1],
-                                   area.km2_mean = summ.model[1, 2],
-                                   area.km2_high = summ.model[1, 3],
-                                   speed.km.day_low = summ.model[2, 1],
-                                   speed.km.day_mean = summ.model[2, 2],
-                                   speed.km.day_high = summ.model[2, 3],
-                                   diffusion.hectares.day_low = summ.model[3, 1],
-                                   diffusion.hectares.day_mean = summ.model[3, 2],
-                                   diffusion.hectares.day_high = summ.model[3, 3],
-                                   error_gps.m_low = summ.model[4, 1],
-                                   error_gps.m_mean = summ.model[4, 2],
-                                   error_gps.m_high = summ.model[4, 3])
+    summ_list.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                   area_low = summ.model[1, 1],
+                                   area_mean = summ.model[1, 2],
+                                   area_high = summ.model[1, 3],
+                                   area.units = rownames(summary(fit_list.t[[i]])$CI)[1],
+                                   speed_low = summ.model[2, 1],
+                                   speed_mean = summ.model[2, 2],
+                                   speed_high = summ.model[2, 3],
+                                   speed.units = rownames(summary(fit_list.t[[i]])$CI)[2],
+                                   diffusion_low = summ.model[3, 1],
+                                   diffusion_mean = summ.model[3, 2],
+                                   diffusion_high = summ.model[3, 3],
+                                   diffusion.units = rownames(summary(fit_list.t[[i]])$CI)[3],
+                                   error_gps_low = summ.model[4, 1],
+                                   error_gps_mean = summ.model[4, 2],
+                                   error_gps_high = summ.model[4, 3],
+                                   error_gps.units = rownames(summary(fit_list.t[[i]])$CI)[4])
     
   }
   
@@ -321,19 +372,23 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   
   for(i in 1:length(data.tel.c)){
     summ.model <- summary(fit_list.c[[i]])$CI %>% as.data.frame()
-    summ_list.c[[i]] <- data.frame(ind.id = ind.names.c[i],
-                                   area.km2_low = summ.model[1, 1],
-                                   area.km2_mean = summ.model[1, 2],
-                                   area.km2_high = summ.model[1, 3],
-                                   speed.km.day_low = summ.model[2, 1],
-                                   speed.km.day_mean = summ.model[2, 2],
-                                   speed.km.day_high = summ.model[2, 3],
-                                   diffusion.hectares.day_low = summ.model[3, 1],
-                                   diffusion.hectares.day_mean = summ.model[3, 2],
-                                   diffusion.hectares.day_high = summ.model[3, 3],
-                                   error_gps.m_low = summ.model[4, 1],
-                                   error_gps.m_mean = summ.model[4, 2],
-                                   error_gps.m_high = summ.model[4, 3])
+    summ_list.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                   area_low = summ.model[1, 1],
+                                   area_mean = summ.model[1, 2],
+                                   area_high = summ.model[1, 3],
+                                   area.units = rownames(summary(fit_list.c[[i]])$CI)[1],
+                                   speed_low = summ.model[2, 1],
+                                   speed_mean = summ.model[2, 2],
+                                   speed_high = summ.model[2, 3],
+                                   speed.units = rownames(summary(fit_list.c[[i]])$CI)[2],
+                                   diffusion_low = summ.model[3, 1],
+                                   diffusion_mean = summ.model[3, 2],
+                                   diffusion_high = summ.model[3, 3],
+                                   diffusion.units = rownames(summary(fit_list.c[[i]])$CI)[3],
+                                   error_gps_low = summ.model[4, 1],
+                                   error_gps_mean = summ.model[4, 2],
+                                   error_gps_high = summ.model[4, 3],
+                                   error_gps.units = rownames(summary(fit_list.c[[i]])$CI)[4])
     
   }
   
@@ -354,15 +409,18 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     print(paste0("Calculating AKDE DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
   }
   
+  names(akde.list.t) <- names.list_t
+  names(akde.list.c) <- names.list_c
   
   akde.area.t <- list()
   
   for(i in 1:length(data.tel.t)){
     akde.area <- summary(akde.list.t[[i]])$CI
-    akde.area.t[[i]] <- data.frame(ind.id = ind.names.t[i],
-                                   area.hectares_low = akde.area[1, 1],
-                                   area.hectares_mean = akde.area[1, 2],
-                                   area.hectares_high = akde.area[1, 3]) 
+    akde.area.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                   area_low = akde.area[1, 1],
+                                   area_mean = akde.area[1, 2],
+                                   area_high = akde.area[1, 3],
+                                   area.units = rownames(summary(akde.list.t[[i]])$CI)[1]) 
   }
   
   akde.area.df.t <- as.data.frame(do.call(rbind, akde.area.t))
@@ -371,14 +429,14 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   
   for(i in 1:length(data.tel.c)){
     akde.area <- summary(akde.list.c[[i]])$CI
-    akde.area.c[[i]] <- data.frame(ind.id = ind.names.c[i],
-                                   area.hectares_low = akde.area[1, 1],
-                                   area.hectares_mean = akde.area[1, 2],
-                                   area.hectares_high = akde.area[1, 3]) 
+    akde.area.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                   area_low = akde.area[1, 1],
+                                   area_mean = akde.area[1, 2],
+                                   area_high = akde.area[1, 3],
+                                   area.units = rownames(summary(akde.list.c[[i]])$CI)[1]) 
   }
   
   akde.area.df.c <- as.data.frame(do.call(rbind, akde.area.c))
-  
   
   speed_list.t <- list()
   speed_list.c <- list()
@@ -395,6 +453,9 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     print(paste0("Calculating SPEED DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
   }
   
+  names(speed_list.t) <- names.list_t
+  names(speed_list.c) <- names.list_c
+  
   print("Calculating DISTANCE and summary statistics.")
   
   speed.stat.t <- list()
@@ -408,14 +469,16 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
     summ.speed <- summ.speed * 3.6
     
-    speed.stat.t[[i]] <- data.frame(ind.id = ind.names.t[i],
+    speed.stat.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
                                     days = d.length,
                                     distance.km_low = summ.dist[1, 1],
                                     distance.km_mean = summ.dist[1, 2],
                                     distance.km_high = summ.dist[1, 3],
+                                    distance.units = rownames(speed_list.t[[i]]$CI)[1],
                                     speed.km.h_low = summ.speed[1, 1],
                                     speed.km.h_low = summ.speed[1, 2],
-                                    speed.km.h_low = summ.speed[1, 3])
+                                    speed.km.h_low = summ.speed[1, 3],
+                                    speed.units = rownames(speed_list.t[[i]]$CI)[1])
   }
   
   speed.dist.df.t <- as.data.frame(do.call(rbind, speed.stat.t))
@@ -431,27 +494,47 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
     summ.speed <- summ.speed * 3.6
     
-    speed.stat.c[[i]] <- data.frame(ind.id = ind.names.c[i],
+    speed.stat.c[[i]] <- data.frame(ind.id = names.list_t[[i]],
                                     days = d.length,
-                                    distance.km_low = summ.dist[1, 1],
-                                    distance.km_mean = summ.dist[1, 2],
-                                    distance.km_high = summ.dist[1, 3],
-                                    speed.km.h_low = summ.speed[1, 1],
-                                    speed.km.h_low = summ.speed[1, 2],
-                                    speed.km.h_low = summ.speed[1, 3])
+                                    distance_low = summ.dist[1, 1],
+                                    distance_mean = summ.dist[1, 2],
+                                    distance_high = summ.dist[1, 3],
+                                    distance.units = rownames(speed_list.c[[i]]$CI)[1],
+                                    speed_low = summ.speed[1, 1],
+                                    speed_low = summ.speed[1, 2],
+                                    speed_low = summ.speed[1, 3],
+                                    speed.units = rownames(speed_list.c[[i]]$CI)[1],)
   }
   
   speed.dist.df.c <- as.data.frame(do.call(rbind, speed.stat.c))
   
-  res.list_treatment <- list(plot = plot.t, map = map.t, telemetry.objects = data.tel.t, summary = sum.res.t, akde = akde.area.df.t, akde.objects = akde.list.t, speed.dist = speed.dist.df.t)
-  res.list_control <- list(plot = plot.c, map = map.c, telemetry.objects = data.tel.c, summary = sum.res.c, akde = akde.area.df.c, akde.objects = akde.list.c, speed.dist = speed.dist.df.c)
+  res.list_treatment <- list(map = map.t, telemetry.objects = data.tel.t, summary = sum.res.t, akde = akde.area.df.t, akde.objects = akde.list.t, speed.dist = speed.dist.df.t, fit.objects = fit_list.t, speed.objects = speed_list.t)
+  res.list_control <- list(map = map.c, telemetry.objects = data.tel.c, summary = sum.res.c, akde = akde.area.df.c, akde.objects = akde.list.c, speed.dist = speed.dist.df.c, fit.objects = fit_list.c, speed.objects = speed_list.c)
 
   res.list <- list(treatment = res.list_treatment, control = res.list_control)
   print("Comparasion DONE!")
+  
+  if(!is.na(export.folder)){
+    print(paste0("Saving results to: ", export.folder))
+    
+    saveRDS(res.list, paste0(export.folder, "/", period, "_", male_female, "_period_results.RDS"))
+    
+    writexl::write_xlsx(res.list$treatment$summary, paste0(export.folder, "/", period, "_", male_female, "_period_treatment.site_summary.xlsx"))
+    writexl::write_xlsx(res.list$treatment$akde, paste0(export.folder, "/", period, "_", male_female, "_period_treatment.site_akde.xlsx"))
+    writexl::write_xlsx(res.list$treatment$speed.dist, paste0(export.folder, "/", period, "_", male_female, "_period_treatment.site_speed_dist.xlsx"))
+    
+    
+    writexl::write_xlsx(res.list$control$summary, paste0(export.folder, "/", period, "_", male_female, "_period_control.site_summary.xlsx"))
+    writexl::write_xlsx(res.list$control$akde, paste0(export.folder, "/", period, "_", male_female, "_period_control.site_akde.xlsx"))
+    writexl::write_xlsx(res.list$control$speed.dist, paste0(export.folder, "/", period, "_", male_female, "_period_control.site_speed_dist.xlsx"))
+    
+  }
+  
   return(res.list)
   
 }
-  
+
+
 # summ.model <- summary(M.OUF.e)$CI %>% as.data.frame()
 # akde_area <- ctmm::akde(data = first_deer, CTMM = M.OUF.e)
 # akde_area <- summary(akde_area)
@@ -463,8 +546,5 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
 # rownames(ctmm_dist) <- "distance (km)"
 # ctmm_speed <- ctmm_speed$CI * 3.6
 # rownames(ctmm_speed) <- "speed (km/h)"
-
-
-
 
 

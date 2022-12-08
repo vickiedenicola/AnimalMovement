@@ -102,9 +102,9 @@ map_individual <- function(df.site = df.site, ind.id = c(), burst = FALSE){
 # ------------------------------------------------------------------------------
 
 # Pre Breeding	15 Sep - 15 Oct
-# Breeding	15 Oct- 31 Dec
+# Breeding	16 Oct- 31 Dec
 # Post Breeding	1 Jan - 15 April
-# Baseline	15 Apr - 30 May
+# Baseline	16 Apr - 30 May
 
 
 # Parameters:
@@ -192,7 +192,7 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
            device = "jpeg",
            dpi = 700)
   }
-  
+  # mapviewOptions(fgb = FALSE)
   map.t <- map_individual(df.site = data.subset.t, ind.id = unique(data.subset.t$`individual-local-identifier`), burst = FALSE)
   map.c <- map_individual(df.site = data.subset.c, ind.id = unique(data.subset.c$`individual-local-identifier`), burst = FALSE)
   
@@ -288,7 +288,7 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   for(i in 1:length(data.tel.c)){
     guess_list.c[[i]] <- ctmm.guess(data.tel.c[[i]], variogram = variogram_list.c[[i]], CTMM = ctmm(error = TRUE, isotropic = TRUE), interactive = FALSE)
   }
-  
+
   names(guess_list.t) <- names.list_t
   names(guess_list.c) <- names.list_c
   
@@ -297,15 +297,29 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     fit_list.t <- list()
     fit_list.c <- list()
     
-    
     for(i in 1:length(data.tel.t)){
-      fit_list.t[[i]] <- ctmm.fit(data.tel.t[[i]], guess_list.t[[i]])
+      fit_list.t[[i]] <- tryCatch(
+        {
+          ctmm.fit(data.tel.t[[i]], guess_list.t[[i]])
+        },
+        error = function(e){
+          NA
+        }
+      )
       print(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.t), " individuals from treatment site!"))
     }
     
     for(i in 1:length(data.tel.c)){
-      fit_list.c[[i]] <- ctmm.fit(data.tel.c[[i]], guess_list.c[[i]])
-      print(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
+      fit_list.c[[i]] <- tryCatch(
+        {
+          ctmm.fit(data.tel.c[[i]], guess_list.c[[i]])
+        },
+        error = function(e){
+          NA
+        }
+      )
+        
+      rint(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
     }
     
     names(fit_list.t) <- names.list_t
@@ -345,50 +359,148 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   summ_list.t <- list()
   
   for(i in 1:length(data.tel.t)){
-    summ.model <- summary(fit_list.t[[i]])$CI %>% as.data.frame()
-    summ_list.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
-                                   area_low = summ.model[1, 1],
-                                   area_mean = summ.model[1, 2],
-                                   area_high = summ.model[1, 3],
-                                   area.units = rownames(summary(fit_list.t[[i]])$CI)[1],
-                                   speed_low = summ.model[2, 1],
-                                   speed_mean = summ.model[2, 2],
-                                   speed_high = summ.model[2, 3],
-                                   speed.units = rownames(summary(fit_list.t[[i]])$CI)[2],
-                                   diffusion_low = summ.model[3, 1],
-                                   diffusion_mean = summ.model[3, 2],
-                                   diffusion_high = summ.model[3, 3],
-                                   diffusion.units = rownames(summary(fit_list.t[[i]])$CI)[3],
-                                   error_gps_low = summ.model[4, 1],
-                                   error_gps_mean = summ.model[4, 2],
-                                   error_gps_high = summ.model[4, 3],
-                                   error_gps.units = rownames(summary(fit_list.t[[i]])$CI)[4])
+    
+    if(!is.na(fit_list.t[[i]])){
+      summ.model <- summary(fit_list.t[[i]])$CI %>% as.data.frame()
+      summ_list.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                     
+                                     area_low = summ.model[1, 1],
+                                     area_mean = summ.model[1, 2],
+                                     area_high = summ.model[1, 3],
+                                     area.units = rownames(summary(fit_list.t[[i]])$CI)[1],
+                                     
+                                     t_position_low = summ.model[2, 1],
+                                     t_position_mean = summ.model[2, 2],
+                                     t_position_high = summ.model[2, 3],
+                                     t_position.units = rownames(summary(fit_list.t[[i]])$CI)[2],
+                                     
+                                     t_velocity_low = summ.model[3, 1],
+                                     t_velocity_low = summ.model[3, 2],
+                                     t_velocity_low = summ.model[3, 3],
+                                     t_velocity.units = rownames(summary(fit_list.t[[i]])$CI)[3],
+                                     
+                                     speed_low = summ.model[4, 1],
+                                     speed_mean = summ.model[4, 2],
+                                     speed_high = summ.model[4, 3],
+                                     speed.units = rownames(summary(fit_list.t[[i]])$CI)[4],
+                                     
+                                     diffusion_low = summ.model[5, 1],
+                                     diffusion_mean = summ.model[5, 2],
+                                     diffusion_high = summ.model[5, 3],
+                                     diffusion.units = rownames(summary(fit_list.t[[i]])$CI)[5],
+                                     
+                                     error_gps_low = summ.model[6, 1],
+                                     error_gps_mean = summ.model[6, 2],
+                                     error_gps_high = summ.model[6, 3],
+                                     error_gps.units = rownames(summary(fit_list.t[[i]])$CI)[6])
+    } else{
+      summ_list.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                     
+                                     area_low = NA,
+                                     area_mean = NA,
+                                     area_high = NA,
+                                     area.units = NA,
+                                     
+                                     t_position_low = NA,
+                                     t_position_mean = NA,
+                                     t_position_high = NA,
+                                     t_position.units = NA,
+                                     
+                                     t_velocity_low = NA,
+                                     t_velocity_low = NA,
+                                     t_velocity_low = NA,
+                                     t_velocity.units = NA,
+                                     
+                                     speed_low = NA,
+                                     speed_mean = NA,
+                                     speed_high = NA,
+                                     speed.units = NA,
+                                     
+                                     diffusion_low = NA,
+                                     diffusion_mean = NA,
+                                     diffusion_high = NA,
+                                     diffusion.units = NA,
+                                     
+                                     error_gps_low = NA,
+                                     error_gps_mean = NA,
+                                     error_gps_high = NA,
+                                     error_gps.units = NA)
+      
+    }
+    
     
   }
+  
+  
+  # summ.model %<>% tibble::rownames_to_column("Attribute")
+  # 
+  # summ.model1 <- summ.model %>% dplyr::select(-Attribute) %>% t() %>% as_tibble() %>%
+  #   magrittr::set_colnames(c(summ.model$Attribute)) %>%
+  #   mutate(var = subset(colnames(summ.model), !colnames(summ.model) %in% c("Attribute"))) 
   
   sum.res.t <- as.data.frame(do.call(rbind, summ_list.t))
   
   summ_list.c <- list()
   
   for(i in 1:length(data.tel.c)){
-    summ.model <- summary(fit_list.c[[i]])$CI %>% as.data.frame()
-    summ_list.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
-                                   area_low = summ.model[1, 1],
-                                   area_mean = summ.model[1, 2],
-                                   area_high = summ.model[1, 3],
-                                   area.units = rownames(summary(fit_list.c[[i]])$CI)[1],
-                                   speed_low = summ.model[2, 1],
-                                   speed_mean = summ.model[2, 2],
-                                   speed_high = summ.model[2, 3],
-                                   speed.units = rownames(summary(fit_list.c[[i]])$CI)[2],
-                                   diffusion_low = summ.model[3, 1],
-                                   diffusion_mean = summ.model[3, 2],
-                                   diffusion_high = summ.model[3, 3],
-                                   diffusion.units = rownames(summary(fit_list.c[[i]])$CI)[3],
-                                   error_gps_low = summ.model[4, 1],
-                                   error_gps_mean = summ.model[4, 2],
-                                   error_gps_high = summ.model[4, 3],
-                                   error_gps.units = rownames(summary(fit_list.c[[i]])$CI)[4])
+    
+    if(!is.na(fit_list.c[[i]])){
+      summ.model <- summary(fit_list.c[[i]])$CI %>% as.data.frame()
+      summ_list.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                     area_low = summ.model[1, 1],
+                                     area_mean = summ.model[1, 2],
+                                     area_high = summ.model[1, 3],
+                                     area.units = rownames(summary(fit_list.t[[i]])$CI)[1],
+                                     t_position_low = summ.model[2, 1],
+                                     t_position_mean = summ.model[2, 2],
+                                     t_position_high = summ.model[2, 3],
+                                     t_position.units = rownames(summary(fit_list.t[[i]])$CI)[2],
+                                     t_velocity_low = summ.model[3, 1],
+                                     t_velocity_low = summ.model[3, 2],
+                                     t_velocity_low = summ.model[3, 3],
+                                     t_velocity.units = rownames(summary(fit_list.t[[i]])$CI)[3],
+                                     speed_low = summ.model[4, 1],
+                                     speed_mean = summ.model[4, 2],
+                                     speed_high = summ.model[4, 3],
+                                     speed.units = rownames(summary(fit_list.t[[i]])$CI)[4],
+                                     diffusion_low = summ.model[5, 1],
+                                     diffusion_mean = summ.model[5, 2],
+                                     diffusion_high = summ.model[5, 3],
+                                     diffusion.units = rownames(summary(fit_list.t[[i]])$CI)[5],
+                                     error_gps_low = summ.model[6, 1],
+                                     error_gps_mean = summ.model[6, 2],
+                                     error_gps_high = summ.model[6, 3],
+                                     error_gps.units = rownames(summary(fit_list.t[[i]])$CI)[6])
+      
+    } else{
+      summ_list.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                     area_low = NA,
+                                     area_mean = NA,
+                                     area_high = NA,
+                                     area.units = NA,
+                                     t_position_low = NA,
+                                     t_position_mean = NA,
+                                     t_position_high = NA,
+                                     t_position.units = NA,
+                                     t_velocity_low = NA,
+                                     t_velocity_low = NA,
+                                     t_velocity_low = NA,
+                                     t_velocity.units = NA,
+                                     speed_low = NA,
+                                     speed_mean = NA,
+                                     speed_high = NA,
+                                     speed.units = NA,
+                                     diffusion_low = NA,
+                                     diffusion_mean = NA,
+                                     diffusion_high = NA,
+                                     diffusion.units = NA,
+                                     error_gps_low = NA,
+                                     error_gps_mean = NA,
+                                     error_gps_high = NA,
+                                     error_gps.units = NA)
+      
+    }
+    
     
   }
   
@@ -400,12 +512,26 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   print("Calculating AKDE - home range area.")
   
   for(i in 1:length(data.tel.t)){
-    akde.list.t[[i]] <- ctmm::akde(data = data.tel.t[[i]], CTMM = fit_list.t[[i]])
+    akde.list.t[[i]] <- tryCatch(
+      {
+        ctmm::akde(data = data.tel.t[[i]], CTMM = fit_list.t[[i]])
+      },
+      error = function(e){
+        NA
+      }
+    )
     print(paste0("Calculating AKDE DONE for: ", i , " / ", length(data.tel.t), " individuals from treatment site!"))
   }
   
   for(i in 1:length(data.tel.c)){
-    akde.list.c[[i]] <- ctmm::akde(data = data.tel.c[[i]], CTMM = fit_list.c[[i]])
+    akde.list.c[[i]] <- tryCatch(
+      {
+        ctmm::akde(data = data.tel.c[[i]], CTMM = fit_list.c[[i]])
+      },
+      error = function(e){
+        NA
+      }
+    )
     print(paste0("Calculating AKDE DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
   }
   
@@ -415,12 +541,23 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   akde.area.t <- list()
   
   for(i in 1:length(data.tel.t)){
-    akde.area <- summary(akde.list.t[[i]])$CI
-    akde.area.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
-                                   area_low = akde.area[1, 1],
-                                   area_mean = akde.area[1, 2],
-                                   area_high = akde.area[1, 3],
-                                   area.units = rownames(summary(akde.list.t[[i]])$CI)[1]) 
+    
+    if(!is.na(akde.list.t[[i]])){
+      akde.area <- summary(akde.list.t[[i]])$CI
+      akde.area.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                     area_low = akde.area[1, 1],
+                                     area_mean = akde.area[1, 2],
+                                     area_high = akde.area[1, 3],
+                                     area.units = rownames(summary(akde.list.t[[i]])$CI)[1]) 
+    } else{
+      akde.area.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                     area_low = NA,
+                                     area_mean = NA,
+                                     area_high = NA,
+                                     area.units = NA)
+    }
+    
+    
   }
   
   akde.area.df.t <- as.data.frame(do.call(rbind, akde.area.t))
@@ -428,12 +565,24 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   akde.area.c <- list()
   
   for(i in 1:length(data.tel.c)){
-    akde.area <- summary(akde.list.c[[i]])$CI
-    akde.area.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
-                                   area_low = akde.area[1, 1],
-                                   area_mean = akde.area[1, 2],
-                                   area_high = akde.area[1, 3],
-                                   area.units = rownames(summary(akde.list.c[[i]])$CI)[1]) 
+    
+    if(!is.na(akde.list.c[[i]])){
+      akde.area <- summary(akde.list.c[[i]])$CI
+      akde.area.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                     area_low = akde.area[1, 1],
+                                     area_mean = akde.area[1, 2],
+                                     area_high = akde.area[1, 3],
+                                     area.units = rownames(summary(akde.list.c[[i]])$CI)[1]) 
+    } else{
+      akde.area.c[[i]] <- data.frame(ind.id = names.list_c[[i]],
+                                     area_low = NA,
+                                     area_mean = NA,
+                                     area_high = NA,
+                                     area.units = NA) 
+      
+    }
+    
+    
   }
   
   akde.area.df.c <- as.data.frame(do.call(rbind, akde.area.c))
@@ -444,12 +593,26 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
   print("Calculating SPEED.")
   
   for(i in 1:length(data.tel.t)){
-    speed_list.t[[i]] <- ctmm::speed(object = data.tel.t[[i]], CTMM = fit_list.t[[i]], units = FALSE)
+    speed_list.t[[i]] <- tryCatch(
+      {
+        ctmm::speed(object = data.tel.t[[i]], CTMM = fit_list.t[[i]], units = FALSE, cores = 0)
+      },
+      error = function(e){
+        NA
+      }
+    )
     print(paste0("Calculating SPEED DONE for: ", i , " / ", length(data.tel.t), " individuals from treatment site!"))
   }
   
   for(i in 1:length(data.tel.c)){
-    speed_list.c[[i]] <- ctmm::speed(object = data.tel.c[[i]], CTMM = fit_list.c[[i]], units = FALSE)
+    speed_list.c[[i]] <- tryCatch(
+      {
+        ctmm::speed(object = data.tel.c[[i]], CTMM = fit_list.c[[i]], units = FALSE, cores = 0)
+      },
+      error = function(e){
+        NA
+      }
+    )
     print(paste0("Calculating SPEED DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
   }
   
@@ -465,20 +628,35 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     days <- unique(days)
     d.length <- length(days)
     
-    summ.speed <- speed_list.t[[i]]$CI
-    summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
-    summ.speed <- summ.speed * 3.6
+    if(!is.na(speed_list.t[[i]])){
+      summ.speed <- speed_list.t[[i]]$CI
+      summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
+      summ.speed <- summ.speed * 3.6
+      
+      speed.stat.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                      days = d.length,
+                                      distance.km_low = summ.dist[1, 1],
+                                      distance.km_mean = summ.dist[1, 2],
+                                      distance.km_high = summ.dist[1, 3],
+                                      distance.units = "meters",# rownames(speed_list.t[[i]]$CI)[1],
+                                      speed.km.h_low = summ.speed[1, 1],
+                                      speed.km.h_low = summ.speed[1, 2],
+                                      speed.km.h_low = summ.speed[1, 3],
+                                      speed.units = rownames(speed_list.t[[i]]$CI)[1])
+    } else{
+      speed.stat.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                      days = NA,
+                                      distance.km_low = NA,
+                                      distance.km_mean = NA,
+                                      distance.km_high = NA,
+                                      distance.units = NA,
+                                      speed.km.h_low = NA,
+                                      speed.km.h_low = NA,
+                                      speed.km.h_low = NA,
+                                      speed.units = NA)
+    }
     
-    speed.stat.t[[i]] <- data.frame(ind.id = names.list_t[[i]],
-                                    days = d.length,
-                                    distance.km_low = summ.dist[1, 1],
-                                    distance.km_mean = summ.dist[1, 2],
-                                    distance.km_high = summ.dist[1, 3],
-                                    distance.units = rownames(speed_list.t[[i]]$CI)[1],
-                                    speed.km.h_low = summ.speed[1, 1],
-                                    speed.km.h_low = summ.speed[1, 2],
-                                    speed.km.h_low = summ.speed[1, 3],
-                                    speed.units = rownames(speed_list.t[[i]]$CI)[1])
+    
   }
   
   speed.dist.df.t <- as.data.frame(do.call(rbind, speed.stat.t))
@@ -490,26 +668,44 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
     days <- unique(days)
     d.length <- length(days)
     
-    summ.speed <- speed_list.c[[i]]$CI
-    summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
-    summ.speed <- summ.speed * 3.6
+    if(!is.na(speed_list.c[[i]])){
+      summ.speed <- speed_list.c[[i]]$CI
+      summ.dist <- summ.speed * d.length * 24 * 3600 / 1000
+      summ.speed <- summ.speed * 3.6
+      
+      speed.stat.c[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                      days = d.length,
+                                      distance_low = summ.dist[1, 1],
+                                      distance_mean = summ.dist[1, 2],
+                                      distance_high = summ.dist[1, 3],
+                                      distance.units = rownames(speed_list.c[[i]]$CI)[1],
+                                      speed_low = summ.speed[1, 1],
+                                      speed_low = summ.speed[1, 2],
+                                      speed_low = summ.speed[1, 3],
+                                      speed.units = rownames(speed_list.c[[i]]$CI)[1])
+      
+    } else{
+      speed.stat.c[[i]] <- data.frame(ind.id = names.list_t[[i]],
+                                      days = NA,
+                                      distance_low = NA,
+                                      distance_mean = NA,
+                                      distance_high = NA,
+                                      distance.units = NA,
+                                      speed_low = NA,
+                                      speed_low = NA,
+                                      speed_low = NA,
+                                      speed.units = NA)
+    }
     
-    speed.stat.c[[i]] <- data.frame(ind.id = names.list_t[[i]],
-                                    days = d.length,
-                                    distance_low = summ.dist[1, 1],
-                                    distance_mean = summ.dist[1, 2],
-                                    distance_high = summ.dist[1, 3],
-                                    distance.units = rownames(speed_list.c[[i]]$CI)[1],
-                                    speed_low = summ.speed[1, 1],
-                                    speed_low = summ.speed[1, 2],
-                                    speed_low = summ.speed[1, 3],
-                                    speed.units = rownames(speed_list.c[[i]]$CI)[1],)
+    
   }
   
   speed.dist.df.c <- as.data.frame(do.call(rbind, speed.stat.c))
   
-  res.list_treatment <- list(map = map.t, telemetry.objects = data.tel.t, summary = sum.res.t, akde = akde.area.df.t, akde.objects = akde.list.t, speed.dist = speed.dist.df.t, fit.objects = fit_list.t, speed.objects = speed_list.t)
-  res.list_control <- list(map = map.c, telemetry.objects = data.tel.c, summary = sum.res.c, akde = akde.area.df.c, akde.objects = akde.list.c, speed.dist = speed.dist.df.c, fit.objects = fit_list.c, speed.objects = speed_list.c)
+  # TODO include variograms as result - DONE
+  
+  res.list_treatment <- list(map = map.t, telemetry.objects = data.tel.t, summary = sum.res.t, akde = akde.area.df.t, akde.objects = akde.list.t, speed.dist = speed.dist.df.t, fit.objects = fit_list.t, speed.objects = speed_list.t, variograms = variogram_list.t)
+  res.list_control <- list(map = map.c, telemetry.objects = data.tel.c, summary = sum.res.c, akde = akde.area.df.c, akde.objects = akde.list.c, speed.dist = speed.dist.df.c, fit.objects = fit_list.c, speed.objects = speed_list.c, variograms = variogram_list.c)
 
   res.list <- list(treatment = res.list_treatment, control = res.list_control)
   print("Comparasion DONE!")

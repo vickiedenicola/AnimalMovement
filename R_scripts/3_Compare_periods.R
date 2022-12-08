@@ -175,16 +175,22 @@ par(mfrow = c(1, 1))
 
 summary(breeding.period$treatment$akde.objects[[5]])
 
-# TODO fix period dates
-# TODO save from compare functions fit or select objects in list
-# TODO fix adding names - iz liste iz identity i onda to dodaj i u names liste
-# TODO fix units in summary (upit po rowname ili row name dodaj kao novu kolonu)
-# TODO save plots (make unique folder)
+# TODO fix period dates - DONE
+# TODO save from compare functions fit or select objects in list - DONE
+# TODO fix adding names - iz liste iz identity i onda to dodaj i u names liste - DONE
+# TODO fix units in summary (upit po rowname ili row name dodaj kao novu kolonu) - DONE
+# TODO save plots (make unique folder) - DONE
 
+# TODO analyse units in tables - results and make function to convert all in the same units
 # TODO meta - variable = "speed"
-
 # TODO make ggplot function - compare speed, distance and area (first fix function to work on top of excel results)
+# TODO from meta export also mean values per periods and sites
 
+# TODO make function to export meta results per period in the same folder (and also from custom function)
+
+# TODO maybe try with tryCatch for ctmm::fit and isotropic = TRUE/FALSE
+# TODO check for including variogram as parameter in ctmm::fit 
+# TODO cores = 0 in ctmm::select
 
 # all
 
@@ -223,16 +229,87 @@ dev.off()
 par(mfrow = c(1, 1))
 
 
-
+# Periods - processing 
+# First make export folder
+# Second define period 
+# Third run
 # ------------------------------------------------------------------------------
 
-breeding.period_F <- compare_periods(input.data = data.raw, 
-                                     period = "Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+# Pre Breeding	15 Sep - 15 Oct
+# Breeding	16 Oct- 31 Dec
+# Post Breeding	1 Jan - 15 April
+# Baseline	16 Apr - 30 May
+
+
+
+
+# Pre Breeding	15 Sep - 15 Oct
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw, 
+                                     period = "Pre Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
                                      male_female = "F", # c("M", "F")
                                      use.ctmm = "fit", # c("fit", "select")
                                      cal.model = calibration_model,
-                                     export.folder = "C:/R_projects/AnimalMovement/Results/Breeding/Female") # absolute path
+                                     export.folder = "C:/R_projects/AnimalMovement/Results/Pre Breeding/Female") # absolute path
 
+period.results <- compare_periods(input.data = data.raw, 
+                                     period = "Pre Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                     male_female = "M", # c("M", "F")
+                                     use.ctmm = "fit", # c("fit", "select")
+                                     cal.model = calibration_model,
+                                     export.folder = "C:/R_projects/AnimalMovement/Results/Pre Breeding/Male") # absolute path
+
+# Breeding	16 Oct- 31 Dec
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "F", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Breeding/Female") # absolute path
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "M", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Breeding/Male") # absolute path
+
+# Post Breeding	1 Jan - 15 April
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Post Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "F", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Post Breeding/Female") # absolute path
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Post Breeding", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "M", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Post Breeding/Male") # absolute path
+
+# Baseline	16 Apr - 30 May
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Baseline", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "F", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Baseline/Female") # absolute path
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Baseline", # c("Pre Breeding", "Breeding", "Post Breeding", "Baseline")
+                                  male_female = "M", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/Baseline/Male") # absolute path
 
 
 

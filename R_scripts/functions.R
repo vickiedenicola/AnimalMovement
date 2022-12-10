@@ -13,6 +13,7 @@ library(lubridate)
 library(stringr)
 library(ggspatial)
 library(gridExtra)
+
 # Additional packages
 
 library(move)
@@ -319,7 +320,7 @@ compare_periods <- function(input.data = input.data, period = c("Pre Breeding", 
         }
       )
         
-      rint(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
+      print(paste0("Model fitting DONE for: ", i , " / ", length(data.tel.c), " individuals from control site!"))
     }
     
     names(fit_list.t) <- names.list_t

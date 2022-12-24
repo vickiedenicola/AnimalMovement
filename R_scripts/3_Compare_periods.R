@@ -314,4 +314,160 @@ period.results <- compare_periods(input.data = data.raw,
 
 
 
+# New periods
+# ------------------------------------------------------------------------------
+# Breeding 16 OCT - 31 DEC
+# Post Breeding 1 JAN - 15 MAR
+# Baseline 16 MAR - 30 MAY
 
+source("R_scripts/functions.R")
+
+data.raw <- data.table::fread("Data/processed/dataset.Odocoileus.virginianus.filtered_NEW.csv", stringsAsFactors = FALSE, header = TRUE) %>%
+  as.data.frame()
+
+check_table <- readxl::read_xlsx("Analysis/stats_ndays_per_period_per_site_per_sex_NEW.xlsx") %>%
+  as.data.frame()
+
+UERE <- readRDS("Data/undep/calibration.error.model.rds")
+calibration_model <- UERE
+
+
+# Breeding	16 Oct- 31 Dec
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw,
+                                  period = "Breeding", # c("Breeding", "Post Breeding", "Baseline")
+                                  male_female = "F", # c("M", "F")
+                                  use.ctmm = "fit", # c("fit", "select")
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Breeding/Female") # absolute path
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Breeding", 
+                                  male_female = "M", 
+                                  use.ctmm = "fit", 
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Breeding/Male") # absolute path
+
+# Post Breeding	1 Jan - 15 March
+# ------------------------------------------------------------------------------
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Post Breeding", 
+                                  male_female = "M", 
+                                  use.ctmm = "fit", 
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Post Breeding/Male") # absolute path
+
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Post Breeding", 
+                                  male_female = "F", 
+                                  use.ctmm = "fit", 
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Post Breeding/Female") # absolute path
+
+
+# Baseline	16 March - 30 May
+# ------------------------------------------------------------------------------
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Baseline", 
+                                  male_female = "F", 
+                                  use.ctmm = "fit", 
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Baseline/Female") # absolute path
+
+period.results <- compare_periods(input.data = data.raw, 
+                                  period = "Baseline", 
+                                  male_female = "M",
+                                  use.ctmm = "fit", 
+                                  cal.model = calibration_model,
+                                  check_table = check_table,
+                                  export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Baseline/Male") # absolute path
+
+
+
+
+
+
+
+
+
+
+
+
+# Process individuals with less data
+# ------------------------------------------------------------------------------
+source("R_scripts/functions.R")
+
+UERE <- readRDS("Data/undep/calibration.error.model.rds")
+calibration_model <- UERE
+
+check.akde.diff <- readxl::read_xlsx("Analysis/stats_only_akde_diff_calc.xlsx") %>% as.data.frame()
+
+data.raw <- data.table::fread("Data/Odocoileus virginianus DeNicola Staten Island, NY and Rockefeller Park, NY_new.csv",
+                              stringsAsFactors = FALSE,
+                              header = TRUE) %>%
+  as.data.frame()
+
+study_animals <- readxl::read_xlsx("Data/Study_Animals.xlsx" , sheet = "Sheet2") %>%
+  as.data.frame()
+
+
+study_animals %<>%
+  dplyr::mutate(Color = str_sub(ID, - 1, - 1),
+                ID = tolower(sub('[YW]$', '', ID)))
+
+# data.raw %<>% dplyr::filter(`individual-local-identifier` %in% study_animals$ID)
+data.raw %<>% left_join(., study_animals %>% dplyr::select(ID, `study area`, sex, Color), by = c("individual-local-identifier" = "ID"))
+data.raw %<>% dplyr::rename(study.area = `study area`)
+
+data.raw %<>% dplyr::mutate(
+  Date = as.Date(timestamp))
+
+data.raw %<>% dplyr::filter(!(`location-long` == 0 | `location-lat` == 0))
+
+data.raw %<>% dplyr::mutate(
+  Date = as.Date(timestamp),
+  Time = format(as.POSIXct(timestamp), format = "%H:%M:%S")) %>%
+  # dplyr::select(-timestamp) %>%
+  dplyr::mutate(Year = substr(Date, 1, 4),
+                Month = substr(Date, 6, 7),
+                Day = substr(Date, 9, 10))
+
+
+# Breeding	16 Oct- 31 Dec
+# ------------------------------------------------------------------------------
+
+period.results <- calc_periods_akde_diff(input.data = data.raw, 
+                                         period = "Breeding", 
+                                         use.ctmm = "fit", 
+                                         cal.model = calibration_model, 
+                                         check_table = check.akde.diff, 
+                                         export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Just AKDE_DIFF/Breeding/")
+
+# Post Breeding	1 Jan - 15 March
+# ------------------------------------------------------------------------------
+
+period.results <- calc_periods_akde_diff(input.data = data.raw, 
+                                         period = "Post Breeding", 
+                                         use.ctmm = "fit", 
+                                         cal.model = calibration_model, 
+                                         check_table = check.akde.diff, 
+                                         export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Just AKDE_DIFF/Post Breeding/")
+
+
+# Baseline	16 March - 30 May
+# ------------------------------------------------------------------------------
+
+period.results <- calc_periods_akde_diff(input.data = data.raw, 
+                                         period = "Baseline", 
+                                         use.ctmm = "fit", 
+                                         cal.model = calibration_model, 
+                                         check_table = check.akde.diff, 
+                                         export.folder = "C:/R_projects/AnimalMovement/Results/NEW_periods/Just AKDE_DIFF/Baseline")

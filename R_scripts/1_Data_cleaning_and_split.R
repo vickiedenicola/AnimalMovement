@@ -270,7 +270,7 @@ ggplot() +
 # Write the results
 # ------------------------------------------------------------------------------
 
-# write.csv(data.raw, "Data/processed/dataset.Odocoileus.virginianus.filtered.csv")
+# write.csv(data.raw, "Data/processed/dataset.Odocoileus.virginianus.filtered_NEW.csv")
 
 # ------------------------------------------------------------------------------
 
@@ -300,5 +300,10 @@ map_individual(df.site = data.RF, ind.id = c("31", "57", "43", "44", "62", "47")
 length(unique(data.raw$`tag-local-identifier`))
 length(unique(data.raw$`individual-local-identifier`))
 
+mapviewOptions(fgb = FALSE) 
+map_individual(df.site = data.SI, ind.id = c("629"), burst = TRUE)
 
+
+cc <- data.raw %>% 
+  dplyr::filter(`individual-local-identifier` %in% miss)
 

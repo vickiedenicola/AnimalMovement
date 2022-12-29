@@ -4,7 +4,8 @@
 **Description:** The goal of this project is the Analysis of animal tracking data - Odocoileus virginianus.         
 **Author:** Petar Bursac, Vickie DeNicola
 
-![Example - map of events](www/img1.jpg)
+
+![Example - map of events](www/img1.JPG)
 
 
 ## Project Description

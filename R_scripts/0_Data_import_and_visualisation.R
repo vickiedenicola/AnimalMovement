@@ -16,18 +16,27 @@ library(lubridate)
 library(move)
 library(ctmm)
 
+
+# This is first created script and mainly it is focused on data exploration and analysis 
+# Later, code written here is modified and used in another scripts
+# Here is let say first encounter with data 
+
+
+# I partially annotate this script, because it is not of interest - there is a lot of code, but this is just an introduction to the data
+
+
 # Read the dataset
 # ------------------------------------------------------------------------------
 
-data.raw <- data.table::fread("Data/Odocoileus virginianus DeNicola Staten Island, NY and Rockefeller Park, NY.csv",
-                     stringsAsFactors = FALSE,
-                     header = TRUE) %>%
-  as.data.frame()
+data.raw <- data.table::fread("Data/Odocoileus virginianus DeNicola Staten Island, NY and Rockefeller Park, NY.csv", # path to dataset
+                     stringsAsFactors = FALSE, # do not convert string as factors
+                     header = TRUE) %>% # file has header with column names 
+  as.data.frame() # make dataframe
 
 
 names(data.raw)
 
-# Select and rename variables of interests
+# Select and rename variables of interests - not needed later - we kept origanal column names later
 
 data.raw %<>% dplyr::select(`event-id`,
                            visible,
@@ -61,7 +70,7 @@ names(data.raw)
 
 unique(data.raw$canonical.name) # Odocoileus virginianus
 
-data.raw %<>% dplyr::select(-canonical.name)
+data.raw %<>% dplyr::select(-canonical.name) # remove canonical name
 
 
 # Remove events without coordinates / gps:NO FIX
@@ -69,11 +78,12 @@ data.raw %<>% dplyr::select(-canonical.name)
 summary(data.raw$timestamp)
 
 dim(data.raw) # 373014     11
-data.raw %<>% dplyr::filter(!(long == 0 | lat == 0)) # - 6556  (366394)
-data.raw %<>% dplyr::filter(!(gps.fix == "NO FIX")) # - 9 (366385)
+data.raw %<>% dplyr::filter(!(long == 0 | lat == 0)) # - 6556  (366394) # remove zero longitude and latitude coordinates
+data.raw %<>% dplyr::filter(!(gps.fix == "NO FIX")) # - 9 (366385) # remove events without fix type of gps signal
 
+# Check 
 unique(data.raw$gps.sat)
-data.raw %>% dplyr::filter(is.na(long)) # 0
+data.raw %>% dplyr::filter(is.na(long)) # 0 
 data.raw %>% dplyr::filter(is.na(lat)) # 0
 
 unique(data.raw$tag.local.id)
@@ -81,10 +91,12 @@ unique(data.raw$individual.local.id)
 
 # Example
 # --------------------------------------------
-d.1 <- data.raw %>% dplyr::filter(individual.local.id %in% c("20a", "11", "15b"))
-d.1.sf <- st_as_sf(d.1, coords = c("long", "lat"), crs = 4326)
+d.1 <- data.raw %>% dplyr::filter(individual.local.id %in% c("20a", "11", "15b")) # filter some individuals by id 
+d.1.sf <- st_as_sf(d.1, # make sf - spattial class from data - specify dataset
+                   coords = c("long", "lat"), # specify columns with coordinates
+                   crs = 4326) # specify coordinate reference system
 
-mapview(d.1.sf, zcol = "individual.local.id")
+mapview(d.1.sf, zcol = "individual.local.id") # view it on the web map interactive
 
 # --------------------------------------------
 
@@ -109,10 +121,10 @@ mapview(d.1.sf, zcol = "individual.local.id")
 range(data.raw$timestamp)
 
 data.raw %<>% dplyr::mutate(
-  Date = as.Date(timestamp),
+  Date = as.Date(timestamp), # Divide timestamp column to Date and Time columns
   Time = format(as.POSIXct(timestamp), format = "%H:%M:%S")) %>%
   # dplyr::select(-timestamp) %>%
-  dplyr::mutate(Year = substr(Date, 1, 4),
+  dplyr::mutate(Year = substr(Date, 1, 4), # Divide Date column to Year, Month and Day columns
                 Month = substr(Date, 6, 7),
                 Day = substr(Date, 9, 10))
 
@@ -120,25 +132,27 @@ data.raw %<>% dplyr::mutate(
 # start: 2021-09-15 00:00:00
 # end: 2022-05-30 00:00:00
 
+# Filter events by Date between start and stop dates of interest for this study
 data.raw %<>% dplyr::filter(between(Date, as.Date('2021-09-15'), as.Date('2022-05-30'))) # 341456 events
-
 
 
 
 # 2. Filter data by individual.local.id which is of interest for this study (read another excel dataset and match individuals)
 # ------------------------------------------------------------------------------
 
-study_animals <- readxl::read_xlsx("Data/Study_Animals.xlsx" , sheet = "Sheet2") %>%
+study_animals <- readxl::read_xlsx("Data/Study_Animals.xlsx" , sheet = "Sheet2") %>% # read the excel file with additional attributes
   as.data.frame()
 
 library(stringr)
 
 study_animals %<>%
-  dplyr::mutate(Color = str_sub(ID, - 1, - 1),
+  dplyr::mutate(Color = str_sub(ID, - 1, - 1), # substring ID to unique ID and color to another column
                 ID = tolower(sub('[YW]$', '', ID)))
 
 dim(data.raw)
-data.raw %<>% dplyr::filter(individual.local.id %in% study_animals$ID) # 317468 events
+
+# Filter individual IDs to available IDs in study_animals excel file
+data.raw %<>% dplyr::filter(individual.local.id %in% study_animals$ID) # 317468 events 
 # control
 length(unique(data.raw$individual.local.id)) # 57 ids # 63 ids new added
 length(unique(study_animals$ID)) # 57 ids # 63 ids new added
@@ -148,9 +162,13 @@ length(unique(study_animals$ID)) # 57 ids # 63 ids new added
 # 3. Add column for study area: control site - Rockefeller, treatment site - Staten Island and other columns
 # ------------------------------------------------------------------------------
 
-data.raw %<>% left_join(., study_animals %>% dplyr::select(ID, `study area`, sex, Color), by = c("individual.local.id" = "ID"))
-data.raw %<>% dplyr::rename(study.area = `study area`)
+data.raw %<>% left_join(., study_animals %>% # join data with additional attributes from table
+                          dplyr::select(ID, `study area`, sex, Color), # select only this attributes
+                        by = c("individual.local.id" = "ID")) # and specify identical - unique columns to join 
 
+data.raw %<>% dplyr::rename(study.area = `study area`) # rename column name
+
+# Example
 # data.SI <- data.raw %>%
 #   dplyr::filter(study.area == "Staten Island")
 #

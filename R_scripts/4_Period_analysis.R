@@ -16,6 +16,12 @@ library(writexl)
 library(gridExtra)
 library(viridis)
 
+library(ggpubr)
+library(jtools)
+library(ggfortify)
+library(grid)
+library(gridExtra)
+
 # Movement packages
 
 library(move)
@@ -23,6 +29,8 @@ library(ctmm)
 library(ctmmweb)
 
 source("R_scripts/functions.R")
+
+# new period are starting from line 335
 
 
 
@@ -1104,7 +1112,7 @@ diffusion_meta_plot(t.akde = t.akde,
 # TODO corellation (area, speed, diffusion, tau position, tau velocity) - DONE
 # TODO results for akde/diffusion animals + new ndays plot - DONE
 # TODO annotate code - Data exploration and Error model files
-# TODO push to github
+# TODO push to github - DONE
 
 
 
@@ -1506,4 +1514,240 @@ plot_ud(UD_list = t.akde,
         cex = 0.65,
         tele_list = period.result$telemetry.objects) 
 dev.off()
+
+
+
+
+
+
+
+# Linear regression speed vs diffusion
+# ------------------------------------------------------------------------------
+
+
+# Breeding - Males
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde, 
+#                         c.akde = c.akde, 
+#                         export.folder = "Results/NEW_periods/Breeding/Male/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde,
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Breeding/Male/")
+
+                        
+
+
+
+# Breeding - Females
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde, 
+#                         c.akde = c.akde, 
+#                         export.folder = "Results/NEW_periods/Breeding/Female/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde,
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Breeding/Female/")
+
+
+# Post Breeding - Males
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde, 
+#                         c.akde = c.akde, 
+#                         export.folder = "Results/NEW_periods/Post Breeding/Male/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde,
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Post Breeding/Male/")
+
+
+# Post Breeding - Females
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde, 
+#                         c.akde = c.akde, 
+#                         export.folder = "Results/NEW_periods/Post Breeding/Female/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde,
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Post Breeding/Female/")
+
+                        
+
+# Baseline - Males
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde,
+#                         c.akde = c.akde,
+#                         export.folder = "Results/NEW_periods/Baseline/Male/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde,
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Baseline/Male/")
+
+                        
+
+# Baseline - Females
+# ------------------------------------------------------------------------------
+
+t.akde <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+# linear_regression_plots(t.akde = t.akde,
+#                         c.akde = c.akde,
+#                         export.folder = "Results/NEW_periods/Baseline/Female/")
+
+# -------------
+
+linear_regression_plots_with_error_bars(t.akde = t.akde, 
+                                        c.akde = c.akde, 
+                                        export.folder = "Results/NEW_periods/Baseline/Female/")
+
+
+
+
+
+# ------------------------------------------------------------------------------
+
+
+
+
+# Linear regression - males vs females
+# ------------------------------------------------------------------------------
+
+# Breeding
+
+t.akde.m <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.m <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+t.akde.f <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.f <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+g1 <- linear_regression_plots_per_period(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Breeding", export.folder = "Results/NEW_periods/Breeding/")
+
+g1 <- linear_regression_plots_per_period_with_error_bars(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Breeding", export.folder = "Results/NEW_periods/Breeding/")
+
+
+# Post Breeding
+
+t.akde.m <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.m <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+t.akde.f <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.f <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+g2 <- linear_regression_plots_per_period(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Post Breeding", export.folder = "Results/NEW_periods/Post Breeding/")
+
+g2 <- linear_regression_plots_per_period_with_error_bars(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Post Breeding", export.folder = "Results/NEW_periods/Post Breeding/")
+
+
+# Baseline
+
+t.akde.m <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.m <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+t.akde.f <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/treatment.site_summary.xlsx") %>% 
+  as.data.frame()
+
+c.akde.f <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/control.site_summary.xlsx") %>% 
+  as.data.frame()
+
+
+g3 <- linear_regression_plots_per_period(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Baseline", export.folder = "Results/NEW_periods/Baseline/")
+
+g3 <- linear_regression_plots_per_period_with_error_bars(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, period = "Baseline", export.folder = "Results/NEW_periods/Baseline/")
+
+
+gr1 <- grid.arrange(g1, g2, g3, ncol = 1)
+
+ggsave(plot = gr1,
+       filename = "Results/NEW_periods/lin_reg_treatment_vs_control_per_period_per_sex.jpg",
+       width = 28,
+       height = 50,
+       units = "cm",
+       device = "jpeg",
+       dpi = 700)
+
+
+ggsave(plot = gr1,
+       filename = "Results/NEW_periods/lin_reg_treatment_vs_control_with_error_bars_per_period_per_sex.jpg",
+       width = 45,
+       height = 90,
+       units = "cm",
+       device = "jpeg",
+       dpi = 700)
+
+
+
+
+
 

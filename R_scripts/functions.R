@@ -15,10 +15,17 @@ library(ggspatial)
 library(gridExtra)
 library(viridis)
 
+library(ggpubr)
+library(jtools)
+library(ggfortify)
+library(grid)
+library(gridExtra)
+
 # Additional packages
 
 library(move)
 library(ctmm)
+library(ctmmweb)
 
 
 # Custom functions for visualization
@@ -1468,29 +1475,29 @@ subset_func_new <- function(dataset = dataset, check_table = check_table, time_p
   return(dataset_subset)
 }
 
-
+# mapviewOptions(fgb = FALSE)
 # subData <- subset_func_new(dataset = data.raw, check_table = check_table, time_period = "Breeding", male_female = "F", study_area = "Staten Island")
 # unique(subData$`individual-local-identifier`)
 
 # subData <- subset_func_new(dataset = data.raw, check_table = check_table, time_period = "Post Breeding", male_female = "F", study_area = "Rockefeller")
-# 
-# map_individual(df.site = subData, ind.id = unique(subData$`individual-local-identifier`), burst = TRUE)
-# 
+#
+# map_individual(df.site = subData, ind.id = unique(subData$`individual-local-identifier`), burst = FALSE)
+#
 # subData28 <- subData %>% dplyr::filter(`individual-local-identifier` == "28")
 # length(unique(subData28$Date))
-# 
+#
 # df.site <- subData %>%
 #   dplyr::filter(`individual-local-identifier` == "28") %>%
 #   dplyr::select(-c(timestamp, Date, Time))
-# 
+#
 # df.site.sf <- st_as_sf(df.site, coords = c("location-long", "location-lat"), crs = 4326)
-# 
+#
 # sf::st_write(df.site.sf, "Analysis/individual28_postbreeding.gpkg")
-# 
+#
 # bound28 <- st_read("Analysis/individual28_postbreeding_boundary.gpkg")
-# 
+#
 # mapview(df.site.sf, layer.name = "Ind 28 postbreeding") + mapview(bound28, col.regions = "red")
-# 
+#
 # df.site.sf_sub <- df.site.sf[bound28, ]
 # mapview(df.site.sf_sub)
 
@@ -2390,4 +2397,413 @@ correlation_plot <- function(t.akde = t.akde, c.akde = c.akde, export.folder = "
   
 }
 
+
+linear_regression_plots <- function(t.akde = t.akde, c.akde = c.akde, export.folder = NA){
+  
+  t.akde %<>% replace(is.na(.), 0) 
+  c.akde %<>% replace(is.na(.), 0)
+  
+  t.akde %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                       diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                            
+                            speed_mean = speed_mean)
+  
+  t.akde %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  c.akde %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                       diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                            
+                            speed_mean = speed_mean)
+  
+  c.akde %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  scc_plot_t <- ggscatter(t.akde, x = "speed_mean", y = "diffusion_mean",
+                          color = "dodgerblue3", #alpha = "speed_mean",
+                          add = "reg.line",
+                          add.params = list(color = "blue", fill = "lightgray"),
+                          conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_text(data = t.akde, aes(y = diffusion_mean, x = speed_mean, label = ind.id), nudge_y = 0.01, nudge_x = 0.2, size = 4, color = "dodgerblue3", fontface = "bold") + 
+    scale_x_continuous(limits = c(min(c(t.akde$speed_mean, c.akde$speed_mean)), max(c(t.akde$speed_mean, c.akde$speed_mean))+0.5)) +
+    scale_y_continuous(limits = c(min(c(t.akde$diffusion_mean, c.akde$diffusion_mean)), max(c(t.akde$diffusion_mean, c.akde$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island population",
+         caption = "Pearson method",
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = 'none')
+
+  
+  LRmodel_t <- lm(speed_mean ~ diffusion_mean, t.akde)
+  
+  # summ(LRmodel)
+  # plot_summs(LRmodel, scale = TRUE, plot.distributions = TRUE)
+  
+  reg_plot_t <- autoplot(LRmodel_t, 
+                         which = 1:6, 
+                         colour = 'dodgerblue3',
+                         smooth.colour = 'black', 
+                         smooth.linetype = 'dashed',
+                         ad.colour = 'blue',
+                         label.size = 3, 
+                         label.n = 5, 
+                         label.colour = 'blue',
+                         ncol = 2) + 
+    labs(caption = "Linear regression - Staten Island population")
+  
+  scc_plot_c <- ggscatter(c.akde, x = "speed_mean", y = "diffusion_mean",
+                          color = "red",
+                          add = "reg.line",
+                          add.params = list(color = "red", fill = "lightgray"),
+                          conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_text(data = c.akde, aes(y = diffusion_mean, x = speed_mean, label = ind.id), nudge_y = 0.01, nudge_x = 0.2, size = 4, color = "red", fontface = "bold") + 
+    scale_x_continuous(limits = c(min(c(t.akde$speed_mean, c.akde$speed_mean)), max(c(t.akde$speed_mean, c.akde$speed_mean))+0.5)) +
+    scale_y_continuous(limits = c(min(c(t.akde$diffusion_mean, c.akde$diffusion_mean)), max(c(t.akde$diffusion_mean, c.akde$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nRockefeller population",
+         caption = "Pearson method",
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    theme(legend.position = 'none')
+
+  
+  LRmodel_c <- lm(speed_mean ~ diffusion_mean, c.akde)
+
+  reg_plot_c <- autoplot(LRmodel_c, 
+                         which = 1:6, 
+                         colour = 'red',
+                         smooth.colour = 'black', 
+                         smooth.linetype = 'dashed',
+                         ad.colour = 'red',
+                         label.size = 3, 
+                         label.n = 5, 
+                         label.colour = 'red',
+                         ncol = 2) + 
+    labs(caption = "Linear regression - Rockefeller population")
+  
+  
+  gg1 <- grid.arrange(scc_plot_t, scc_plot_c, ncol = 2)
+  
+  gg2 <- reg_plot_t + reg_plot_c
+ 
+  gg2 <- grid.arrange(arrangeGrob(grobs = gg2@plots, ncol = 2))
+  
+  if(!is.na(export.folder)){
+    ggsave(plot = gg1,
+           filename = paste0(export.folder, "/", "scatter_plots_treatment_vs_control.jpg"),
+           width = 35,
+           height = 22,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+    
+    ggsave(plot = gg2,
+           filename = paste0(export.folder, "/", "regression_plots_treatment_vs_control.jpg"),
+           width = 28,
+           height = 55,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+  }
+  
+  return(list(scater_plot = gg1, reg_plot = gg2))
+}
+
+
+
+linear_regression_plots_per_period <- function(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, export.folder = NA, period = NA){
+  
+  t.akde.m %<>% replace(is.na(.), 0) 
+  c.akde.m %<>% replace(is.na(.), 0)
+  
+  t.akde.m %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean)
+  
+  t.akde.m %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  c.akde.m %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean)
+  
+  c.akde.m %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  t.akde.m %<>% dplyr::mutate(Site = "treatment")
+  c.akde.m %<>% dplyr::mutate(Site = "control")
+  
+  
+  t.akde.f %<>% replace(is.na(.), 0) 
+  c.akde.f %<>% replace(is.na(.), 0)
+  
+  t.akde.f %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean)
+  
+  t.akde.f %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  c.akde.f %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean)
+  
+  c.akde.f %<>% dplyr::select(ind.id, speed_mean, diffusion_mean)
+  
+  t.akde.f %<>% dplyr::mutate(Site = "treatment")
+  c.akde.f %<>% dplyr::mutate(Site = "control")
+  
+  # --------------------------------
+  
+  
+  tc.akde.m <- rbind(t.akde.m, c.akde.m)
+  tc.akde.f <- rbind(t.akde.f, c.akde.f)
+  
+  
+  gg.m <- ggscatter(tc.akde.m, x = "speed_mean", y = "diffusion_mean",
+                    color = "Site", #alpha = "speed_mean",
+                    add = "reg.line",
+                    add.params = list(color = "blue", fill = "lightgray"),
+                    conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_text(data = tc.akde.m, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
+    #scale_x_continuous(limits = c(min(c(t.akde.m$speed_mean, c.akde.m$speed_mean)), max(c(t.akde.m$speed_mean, c.akde.m$speed_mean))+0.5)) +
+    #scale_y_continuous(limits = c(min(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean)), max(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [MALES]",
+         caption = period,
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = "bottom")
+  
+  
+  
+  gg.f <- ggscatter(tc.akde.f, x = "speed_mean", y = "diffusion_mean",
+                    color = "Site", #alpha = "speed_mean",
+                    add = "reg.line",
+                    add.params = list(color = "blue", fill = "lightgray"),
+                    conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_text(data = tc.akde.f, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
+    #scale_x_continuous(limits = c(min(c(t.akde.f$speed_mean, c.akde.f$speed_mean)), max(c(t.akde.f$speed_mean, c.akde.f$speed_mean))+0.5)) +
+    #scale_y_continuous(limits = c(min(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean)), max(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [FEMALES]",
+         caption = period,
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = "bottom")
+  
+  gg1 <- grid.arrange(gg.m, gg.f, ncol = 2)
+  
+  if(!is.na(export.folder)){
+    ggsave(plot = gg1,
+           filename = paste0(export.folder, "/", "lin_reg_treatment_vs_control_per_sex.jpg"),
+           width = 40,
+           height = 25,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+  }
+  
+  return(gg1)
+  
+}
+
+
+
+
+linear_regression_plots_with_error_bars <- function(t.akde = t.akde, c.akde = c.akde, export.folder = NA){
+  
+  t.akde %<>% replace(is.na(.), 0) 
+  c.akde %<>% replace(is.na(.), 0)
+  
+  t.akde %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                       diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                            # diffusion_low = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_low/100,
+                            #                            diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_low),
+                            # diffusion_high = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_high/100,
+                            #                            diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_high),
+                            
+                            speed_mean = speed_mean,
+                            speed_low = speed_low,
+                            speed_high = speed_high)
+  
+  t.akde %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  c.akde %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                       diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                            
+                            speed_mean = speed_mean,
+                            speed_low = speed_low,
+                            speed_high = speed_high)
+  
+  c.akde %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  scc_plot_t <- ggscatter(t.akde, x = "speed_mean", y = "diffusion_mean",
+                          color = "dodgerblue3", #alpha = "speed_mean",
+                          add = "reg.line",
+                          add.params = list(color = "blue", fill = "lightgray"),
+                          conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.1, colour = "black", alpha = 0.9, size = 1) +
+    geom_text(data = t.akde, aes(y = diffusion_mean, x = speed_mean, label = ind.id), nudge_y = 0.05, nudge_x = 0.18, size = 4, color = "dodgerblue3", fontface = "bold") + 
+    #scale_x_continuous(limits = c(min(c(t.akde$speed_mean, c.akde$speed_mean)) - 2, max(c(t.akde$speed_mean, c.akde$speed_mean))+2)) +
+    #scale_y_continuous(limits = c(min(c(t.akde$diffusion_mean, c.akde$diffusion_mean)) - 0.5, max(c(t.akde$diffusion_mean, c.akde$diffusion_mean))+0.5)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island population",
+         caption = "Pearson method",
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = 'none')
+  
+  
+  scc_plot_c <- ggscatter(c.akde, x = "speed_mean", y = "diffusion_mean",
+                          color = "red",
+                          add = "reg.line",
+                          add.params = list(color = "red", fill = "lightgray"),
+                          conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.1, colour = "black", alpha = 0.9, size = 1) +
+    geom_text(data = c.akde, aes(y = diffusion_mean, x = speed_mean, label = ind.id), nudge_y = 0.05, nudge_x = 0.18, size = 4, color = "red", fontface = "bold") + 
+    # scale_x_continuous(limits = c(min(c(t.akde$speed_mean, c.akde$speed_mean)) - 2, max(c(t.akde$speed_mean, c.akde$speed_mean))+2)) +
+    # scale_y_continuous(limits = c(min(c(t.akde$diffusion_mean, c.akde$diffusion_mean)) - 0.5, max(c(t.akde$diffusion_mean, c.akde$diffusion_mean))+0.5)) +
+    labs(title = "Linear regression: speed ~ diffusion\nRockefeller population",
+         caption = "Pearson method",
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    theme(legend.position = 'none')
+  
+  gg1 <- grid.arrange(scc_plot_t, scc_plot_c, ncol = 2)
+  
+  if(!is.na(export.folder)){
+    ggsave(plot = gg1,
+           filename = paste0(export.folder, "/", "scatter_plots_with_error_bars_treatment_vs_control_no_scale.jpg"),
+           width = 85,
+           height = 45,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+  }
+  
+  return(list(scater_plot = gg1))
+}
+
+
+linear_regression_plots_per_period_with_error_bars <- function(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, export.folder = NA, period = NA){
+  
+  t.akde.m %<>% replace(is.na(.), 0) 
+  c.akde.m %<>% replace(is.na(.), 0)
+  
+  t.akde.m %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean,
+                              speed_low = speed_low,
+                              speed_high = speed_high)
+  
+  t.akde.m %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  c.akde.m %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean,
+                              speed_low = speed_low,
+                              speed_high = speed_high)
+  
+  c.akde.m %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  t.akde.m %<>% dplyr::mutate(Site = "treatment")
+  c.akde.m %<>% dplyr::mutate(Site = "control")
+  
+  
+  t.akde.f %<>% replace(is.na(.), 0) 
+  c.akde.f %<>% replace(is.na(.), 0)
+  
+  t.akde.f %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean,
+                              speed_low = speed_low,
+                              speed_high = speed_high)
+  
+  t.akde.f %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  c.akde.f %<>% dplyr::mutate(diffusion_mean = case_when(diffusion.units == "diffusion (hectares/day)" ~ diffusion_mean/100,
+                                                         diffusion.units == "diffusion (square kilometers/day)" ~ diffusion_mean),
+                              
+                              speed_mean = speed_mean,
+                              speed_low = speed_low,
+                              speed_high = speed_high)
+  
+  c.akde.f %<>% dplyr::select(ind.id, speed_mean, speed_low, speed_high, diffusion_mean)
+  
+  t.akde.f %<>% dplyr::mutate(Site = "treatment")
+  c.akde.f %<>% dplyr::mutate(Site = "control")
+  
+  # --------------------------------
+  
+  
+  tc.akde.m <- rbind(t.akde.m, c.akde.m)
+  tc.akde.f <- rbind(t.akde.f, c.akde.f)
+  
+  
+  gg.m <- ggscatter(tc.akde.m, x = "speed_mean", y = "diffusion_mean",
+                    color = "Site", #alpha = "speed_mean",
+                    add = "reg.line",
+                    add.params = list(color = "blue", fill = "lightgray"),
+                    conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.025, colour = "black", alpha = 0.9, size = 1) +
+    geom_text(data = tc.akde.m, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
+    #scale_x_continuous(limits = c(min(c(t.akde.m$speed_mean, c.akde.m$speed_mean)), max(c(t.akde.m$speed_mean, c.akde.m$speed_mean))+0.5)) +
+    #scale_y_continuous(limits = c(min(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean)), max(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [MALES]",
+         caption = period,
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = "bottom")
+  
+  
+  
+  gg.f <- ggscatter(tc.akde.f, x = "speed_mean", y = "diffusion_mean",
+                    color = "Site", #alpha = "speed_mean",
+                    add = "reg.line",
+                    add.params = list(color = "blue", fill = "lightgray"),
+                    conf.int = TRUE)+
+    stat_cor(method = "pearson") +
+    geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.025, colour = "black", alpha = 0.9, size = 1) +
+    geom_text(data = tc.akde.f, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
+    #scale_x_continuous(limits = c(min(c(t.akde.f$speed_mean, c.akde.f$speed_mean)), max(c(t.akde.f$speed_mean, c.akde.f$speed_mean))+0.5)) +
+    #scale_y_continuous(limits = c(min(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean)), max(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean))+0.2)) +
+    labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [FEMALES]",
+         caption = period,
+         x = "Speed [kilometers/day]",
+         y = "Diffusion [square kilometers/day]")+
+    # scale_color_gradient(low = "blue", high = "red") +
+    # scale_alpha(range = c(.05, .25)) +
+    theme(legend.position = "bottom")
+  
+  gg1 <- grid.arrange(gg.m, gg.f, ncol = 2)
+  
+  if(!is.na(export.folder)){
+    ggsave(plot = gg1,
+           filename = paste0(export.folder, "/", "lin_reg_treatment_vs_control_with_error_bars_per_sex.jpg"),
+           width = 85,
+           height = 45,
+           units = "cm",
+           device = "jpeg",
+           dpi = 700)
+  }
+  
+  return(gg1)
+  
+}
 

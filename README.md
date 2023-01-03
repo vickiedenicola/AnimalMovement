@@ -19,7 +19,7 @@ The main goal of this project is the analysis of animal species tracking data ob
 
 Data processing and analysis is carried out using the R programming language and environment, and the "ctmm" library was used as the main package.
 
-![Example - variograms and AKDE](www/img2.jpg)
+![Example - variograms and AKDE](www/img3.jpg)
 
 
 

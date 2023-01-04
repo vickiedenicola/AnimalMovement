@@ -2172,7 +2172,28 @@ diffusion_meta_plot <- function(t.akde = t.akde, c.akde = c.akde, export.folder 
 
 
 
-meta_analysis <- function(period.result = period.result, export.folder = ""){
+meta_analysis <- function(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = ""){
+  
+  # Speed
+  # ----------------------------------------------------------------------------
+  # First select individuals with estimated speed, meta function does not work with zeros
+  
+  t.speed %<>% replace(is.na(.), 0) 
+  t.speed %<>% dplyr::select(ind.id, speed_mean)
+  
+  c.speed %<>% replace(is.na(.), 0)
+  c.speed %<>% dplyr::select(ind.id, speed_mean)
+  
+  t.speed %<>% dplyr::filter(speed_mean != 0)
+  c.speed %<>% dplyr::filter(speed_mean != 0)
+  
+  names.t <- t.speed$ind.id
+  names.c <- c.speed$ind.id
+  
+  good.t <- period.result$treatment$speed.objects[names(period.result$treatment$speed.objects) %in% names.t]
+  good.c <- period.result$control$speed.objects[names(period.result$control$speed.objects) %in% names.c]
+  
+  # ----------------------------------------------------------------------------
   
   # Treatment
   
@@ -2194,7 +2215,16 @@ meta_analysis <- function(period.result = period.result, export.folder = ""){
   
   df.t <- data.frame(variable = "Tau position meta analysis", low = NA, est = NA, high = NA)
   
-  df.meta.t <- rbind(df.a, meta.akde.df, df.d, meta.diff.df, df.t, meta.tau.df)
+  meta.speed.df <- ctmm::meta(good.t, variable = "speed", plot = FALSE) 
+  meta.speed.df %<>% as.data.frame() %>%  tibble::rownames_to_column("variable") %>%
+    as.data.frame()
+  
+  df.s <- data.frame(variable = "Speed meta analysis", low = NA, est = NA, high = NA)
+  
+  # ----------------------------------------------------------------------------
+  
+  
+  df.meta.t <- rbind(df.a, meta.akde.df, df.d, meta.diff.df, df.t, meta.tau.df, df.s, meta.speed.df)
   
   
   # Control
@@ -2217,7 +2247,18 @@ meta_analysis <- function(period.result = period.result, export.folder = ""){
   
   df.t <- data.frame(variable = "Tau position meta analysis", low = NA, est = NA, high = NA)
   
-  df.meta.c <- rbind(df.a, meta.akde.df, df.d, meta.diff.df, df.t, meta.tau.df)
+  meta.speed.df <- ctmm::meta(good.c, variable = "speed", plot = FALSE) 
+  meta.speed.df %<>% as.data.frame() %>%  tibble::rownames_to_column("variable") %>%
+    as.data.frame()
+  
+  df.s <- data.frame(variable = "Speed meta analysis", low = NA, est = NA, high = NA)
+  
+  # ----------------------------------------------------------------------------
+  
+  df.meta.c <- rbind(df.a, meta.akde.df, df.d, meta.diff.df, df.t, meta.tau.df, df.s, meta.speed.df)
+  
+  
+  # ----------------------------------------------------------------------------
   
   meta.list <- list(treatment = df.meta.t, control = df.meta.c)
   
@@ -2397,6 +2438,16 @@ correlation_plot <- function(t.akde = t.akde, c.akde = c.akde, export.folder = "
   
 }
 
+# ------------------------------------------------------------------------------
+
+# Function: linear_regression_plots
+# Description: Make regression analysis plots and scatter plot (speed vs diffusion) per period per sex 
+
+# Parameters:
+# - t.obj = treatment site summary object (xlsx file exported from processing periods)
+# - c.obj = control site summary object (xlsx file exported from processing periods)
+# - export.folder = path to the folder to save the results (can be absolute or relative path)
+
 
 linear_regression_plots <- function(t.akde = t.akde, c.akde = c.akde, export.folder = NA){
   
@@ -2511,6 +2562,21 @@ linear_regression_plots <- function(t.akde = t.akde, c.akde = c.akde, export.fol
 }
 
 
+# ------------------------------------------------------------------------------
+
+# Function: linear_regression_plots_per_period
+# Description: Make scatter plot (speed vs diffusion) per period - joint plot of both males and females per site 
+
+# Parameters:
+# - t.obj.m = treatment site summary object - males (xlsx file exported from processing periods)
+# - c.obj.m = control site summary object - males (xlsx file exported from processing periods)
+# - t.obj.f = treatment site summary object - females (xlsx file exported from processing periods)
+# - c.obj.f = control site summary object - females (xlsx file exported from processing periods)
+# - export.folder = path to the folder to save the results (can be absolute or relative path)
+# - period = specify period name ("Breeding", "Post Breeding" or "Baseline")
+
+# Notes: 
+# - scale_x_continuous and scale_y_continuous are commented - in this case for left and right plot x and y axes ranges - limits will be different
 
 linear_regression_plots_per_period <- function(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, export.folder = NA, period = NA){
   
@@ -2569,8 +2635,8 @@ linear_regression_plots_per_period <- function(t.akde.m = t.akde.m, c.akde.m = c
                     conf.int = TRUE)+
     stat_cor(method = "pearson") +
     geom_text(data = tc.akde.m, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
-    #scale_x_continuous(limits = c(min(c(t.akde.m$speed_mean, c.akde.m$speed_mean)), max(c(t.akde.m$speed_mean, c.akde.m$speed_mean))+0.5)) +
-    #scale_y_continuous(limits = c(min(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean)), max(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean))+0.2)) +
+    # scale_x_continuous(limits = c(min(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean)) - 1.5, max(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean))+1.5)) +
+    # scale_y_continuous(limits = c(min(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean)) - 0.3, max(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean))+0.3)) +
     labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [MALES]",
          caption = period,
          x = "Speed [kilometers/day]",
@@ -2588,8 +2654,8 @@ linear_regression_plots_per_period <- function(t.akde.m = t.akde.m, c.akde.m = c
                     conf.int = TRUE)+
     stat_cor(method = "pearson") +
     geom_text(data = tc.akde.f, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
-    #scale_x_continuous(limits = c(min(c(t.akde.f$speed_mean, c.akde.f$speed_mean)), max(c(t.akde.f$speed_mean, c.akde.f$speed_mean))+0.5)) +
-    #scale_y_continuous(limits = c(min(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean)), max(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean))+0.2)) +
+    # scale_x_continuous(limits = c(min(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean)) - 1.5, max(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean))+1.5)) +
+    # scale_y_continuous(limits = c(min(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean)) - 0.3, max(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean))+0.3)) +
     labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [FEMALES]",
          caption = period,
          x = "Speed [kilometers/day]",
@@ -2614,8 +2680,18 @@ linear_regression_plots_per_period <- function(t.akde.m = t.akde.m, c.akde.m = c
   
 }
 
+# ------------------------------------------------------------------------------
 
+# Function: linear_regression_plots_with_error_bars
+# Description: Make regression analysis scatter plot with added error bars (speed vs diffusion) per period per sex 
+#              Error bars are added from low and high values (as 95%) available from processing for each variable (in this case speed)  
+# Parameters:
+# - t.obj = treatment site summary object (xlsx file exported from processing periods)
+# - c.obj = control site summary object (xlsx file exported from processing periods)
+# - export.folder = path to the folder to save the results (can be absolute or relative path)
 
+# Notes: 
+# - scale_x_continuous and scale_y_continuous are commented - in this case for left and right plot x and y axes ranges will be different
 
 linear_regression_plots_with_error_bars <- function(t.akde = t.akde, c.akde = c.akde, export.folder = NA){
   
@@ -2694,6 +2770,22 @@ linear_regression_plots_with_error_bars <- function(t.akde = t.akde, c.akde = c.
   return(list(scater_plot = gg1))
 }
 
+# ------------------------------------------------------------------------------
+
+# Function: linear_regression_plots_per_period_with_error_bars
+# Description: Make scatter plot with added error bars (speed vs diffusion) per period - joint plot of both males and females per site 
+#              Error bars are added from low and high values (as 95%) available from processing for each variable (in this case speed)  
+
+# Parameters:
+# - t.obj.m = treatment site summary object - males (xlsx file exported from processing periods)
+# - c.obj.m = control site summary object - males (xlsx file exported from processing periods)
+# - t.obj.f = treatment site summary object - females (xlsx file exported from processing periods)
+# - c.obj.f = control site summary object - females (xlsx file exported from processing periods)
+# - export.folder = path to the folder to save the results (can be absolute or relative path)
+# - period = specify period name ("Breeding", "Post Breeding" or "Baseline")
+
+# Notes: 
+# - scale_x_continuous and scale_y_continuous are commented - in this case for left and right plot x and y axes ranges will be different
 
 linear_regression_plots_per_period_with_error_bars <- function(t.akde.m = t.akde.m, c.akde.m = c.akde.m, t.akde.f = t.akde.f, c.akde.f = c.akde.f, export.folder = NA, period = NA){
   
@@ -2761,8 +2853,8 @@ linear_regression_plots_per_period_with_error_bars <- function(t.akde.m = t.akde
     stat_cor(method = "pearson") +
     geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.025, colour = "black", alpha = 0.9, size = 1) +
     geom_text(data = tc.akde.m, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
-    #scale_x_continuous(limits = c(min(c(t.akde.m$speed_mean, c.akde.m$speed_mean)), max(c(t.akde.m$speed_mean, c.akde.m$speed_mean))+0.5)) +
-    #scale_y_continuous(limits = c(min(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean)), max(c(t.akde.m$diffusion_mean, c.akde.m$diffusion_mean))+0.2)) +
+    # scale_x_continuous(limits = c(min(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean)) - 1.5, max(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean))+1.5)) +
+    # scale_y_continuous(limits = c(min(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean)) - 0.3, max(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean))+0.3)) +
     labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [MALES]",
          caption = period,
          x = "Speed [kilometers/day]",
@@ -2781,8 +2873,8 @@ linear_regression_plots_per_period_with_error_bars <- function(t.akde.m = t.akde
     stat_cor(method = "pearson") +
     geom_errorbar(aes(xmin = speed_low, xmax = speed_high), width = 0.025, colour = "black", alpha = 0.9, size = 1) +
     geom_text(data = tc.akde.f, aes(y = diffusion_mean, x = speed_mean, label = ind.id, color = Site), nudge_y = 0.01, nudge_x = 0.2, size = 4, fontface = "bold") + 
-    #scale_x_continuous(limits = c(min(c(t.akde.f$speed_mean, c.akde.f$speed_mean)), max(c(t.akde.f$speed_mean, c.akde.f$speed_mean))+0.5)) +
-    #scale_y_continuous(limits = c(min(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean)), max(c(t.akde.f$diffusion_mean, c.akde.f$diffusion_mean))+0.2)) +
+    # scale_x_continuous(limits = c(min(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean)) - 1.5, max(c(tc.obj.m$speed_mean, tc.obj.f$speed_mean))+1.5)) +
+    # scale_y_continuous(limits = c(min(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean)) - 0.3, max(c(tc.obj.m$diffusion_mean, tc.obj.f$diffusion_mean))+0.3)) +
     labs(title = "Linear regression: speed ~ diffusion\nStaten Island and Rockefeller population [FEMALES]",
          caption = period,
          x = "Speed [kilometers/day]",

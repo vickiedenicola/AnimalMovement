@@ -1126,15 +1126,28 @@ diffusion_meta_plot(t.akde = t.akde,
 
 period.result <- readRDS("Results/NEW_periods/Breeding/Male/Breeding_M_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Breeding/Male")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Breeding/Male/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Breeding/Male")
 
 # Breeding - Females
 # ------------------------------------------------------------------------------
 
 period.result <- readRDS("Results/NEW_periods/Breeding/Female/Breeding_F_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Breeding/Female")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
 
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Breeding/Female/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Breeding/Female")
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = NA)
 
 
 
@@ -1143,14 +1156,26 @@ meta_analysis(period.result = period.result, export.folder = "Results/NEW_period
 
 period.result <- readRDS("Results/NEW_periods/Post Breeding/Male/Post Breeding_M_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Post Breeding/Male")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Male/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Post Breeding/Male")
 
 # Post Breeding - Females
 # ------------------------------------------------------------------------------
 
 period.result <- readRDS("Results/NEW_periods/Post Breeding/Female/Post Breeding_F_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Post Breeding/Female")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Post Breeding/Female/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Post Breeding/Female")
 
 
 
@@ -1160,15 +1185,26 @@ meta_analysis(period.result = period.result, export.folder = "Results/NEW_period
 
 period.result <- readRDS("Results/NEW_periods/Baseline/Male/Baseline_M_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Baseline/Male")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Baseline/Male/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Baseline/Male")
 
 # Baseline - Females
 # ------------------------------------------------------------------------------
 
 period.result <- readRDS("Results/NEW_periods/Baseline/Female/Baseline_F_period_results.RDS")
 
-meta_analysis(period.result = period.result, export.folder = "Results/NEW_periods/Baseline/Female")
+t.speed <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/treatment.site_speed_dist.xlsx") %>% 
+  as.data.frame()
 
+c.speed <- readxl::read_xlsx("Results/NEW_periods/Baseline/Female/control.site_speed_dist.xlsx") %>% 
+  as.data.frame()
+
+meta_analysis(period.result = period.result, t.speed = t.speed, c.speed = c.speed, export.folder = "Results/NEW_periods/Baseline/Female")
 
 
 
@@ -1331,10 +1367,133 @@ ggsave(plot = gr1,
        device = "jpeg",
        dpi = 700)
 
+# Speed analysis
+
+meta.speed <- readxl::read_xlsx("Results/NEW_periods/Meta_analysis.xlsx", sheet = "speed_all") %>%
+  as.data.frame()
+
+meta.speed %<>% dplyr::rename(Period = 1)
+
+meta.speed.t <- meta.speed %>% dplyr::filter(Site == "Staten Island")
+meta.speed.c <- meta.speed %>% dplyr::filter(Site == "Rockefeller")
+
+
+g1 <- ggplot(meta.speed.t) +
+  geom_bar(aes(y = Period, x = est, fill = Period), stat = "identity", alpha=0.7) +
+  geom_errorbar(aes(y = Period, xmin = low, xmax = high), width = 0.4, colour = "black", alpha = 0.9, size = 1.3) +
+  geom_text(data = meta.speed.t, aes(y = Period, x = est, label=round(est, 2)), nudge_y = 0.3, nudge_x = 1.2, size = 4, color = "black", fontface = "bold") +
+  #geom_vline(xintercept = mean(t.akde$speed_mean), color = "red", size = 1) +
+  scale_fill_viridis(option = "D", discrete = T, "Period: ") +
+  scale_x_continuous(limits = c(0, max(meta.speed$high)+5)) +
+  ggtitle("Meta analysis - debiased population mean estimates of Speed\nStaten Island population") +
+  xlab("95% Speed [km/day]")+
+  ylab("") +
+  theme_bw() +
+  theme(axis.text = element_text(face="bold")) +
+  facet_wrap(~Sex)
+
+g2 <- ggplot(meta.speed.c) +
+  geom_bar(aes(y = Period, x = est, fill = Period), stat = "identity", alpha=0.7) +
+  geom_errorbar(aes(y = Period, xmin = low, xmax = high), width = 0.4, colour = "black", alpha = 0.9, size = 1.3) +
+  geom_text(data = meta.speed.c, aes(y = Period, x = est, label=round(est, 2)), nudge_y = 0.3, nudge_x = 1.2, size = 4, color = "black", fontface = "bold") +
+  #geom_vline(xintercept = mean(t.akde$speed_mean), color = "red", size = 1) +
+  scale_fill_viridis(option = "D", discrete = T, "Period: ") +
+  scale_x_continuous(limits = c(0, max(meta.speed$high)+5)) +
+  ggtitle("Meta analysis - debiased population mean estimates of Speed\nRockefeller population") +
+  xlab("95% Speed [km/day]")+
+  ylab("") +
+  theme_bw() +
+  theme(axis.text = element_text(face="bold")) +
+  facet_wrap(~Sex)
+
+
+gr1 <- grid.arrange(g1, g2, ncol = 1)
+
+ggsave(plot = gr1,
+       filename = "Results/NEW_periods/meta_analysis_mean_speed.jpg",
+       width = 40,
+       height = 25,
+       units = "cm",
+       device = "jpeg",
+       dpi = 700)
+
+
+# Combined
+
+range01 <- function(x){
+  (x-min(x))/(max(x)-min(x))}
+
+
+meta.comb <- readxl::read_xlsx("Results/NEW_periods/Meta_analysis.xlsx", sheet = "combined") %>%
+  as.data.frame()
+
+meta.comb %<>% dplyr::rename(Period = 1)
+
+meta.comb.t <- meta.comb %>% dplyr::filter(Site == "Staten Island")
+meta.comb.c <- meta.comb %>% dplyr::filter(Site == "Rockefeller")
+
+
+meta.comb.ts <- as.data.frame(scale(meta.comb.t %>% select_if(., is.numeric)))
+
+meta.comb.ts <- range01(meta.comb.ts)
+
+meta.comb.t %<>% dplyr::mutate(low = meta.comb.ts$low,
+                              est = meta.comb.ts$est,
+                              high = meta.comb.ts$high)
+
+
+meta.comb.cs <- as.data.frame(scale(meta.comb.c %>% select_if(., is.numeric)))
+
+meta.comb.cs <- range01(meta.comb.cs)
+
+meta.comb.c %<>% dplyr::mutate(low = meta.comb.cs$low,
+                               est = meta.comb.cs$est,
+                               high = meta.comb.cs$high)
+
+
+g1 <- ggplot(meta.comb.t) +
+  geom_bar(aes(y = Period, x = est, fill = Variable, group = Variable), stat = "identity", position = position_dodge(preserve = "single"), alpha=0.7) +
+  #geom_errorbar(aes(y = Period, xmin = low, xmax = high), width = 0.4, colour = "black", alpha = 0.9, size = 1.3, position = position_dodge(preserve = "single")) +
+  #geom_text(data = meta.comb.t, aes(y = Period, x = est, label=round(est, 2)), nudge_y = 0.3, nudge_x = 1.2, size = 4, color = "black", fontface = "bold") +
+  #geom_vline(xintercept = mean(t.akde$comb_mean), color = "red", size = 1) +
+  scale_fill_viridis(option = "D", discrete = T, "Variable: ") +
+  # scale_x_continuous(limits = c(0, max(meta.comb$high)+5)) +
+  ggtitle("Meta analysis - debiased population mean estimates - Relative Ratio\nStaten Island population") +
+  xlab("Standardized values [0-1]")+
+  ylab("") +
+  theme_bw() +
+  theme(axis.text = element_text(face="bold")) +
+  facet_wrap(~Sex)
+
+
+g2 <- ggplot(meta.comb.c) +
+  geom_bar(aes(y = Period, x = est, fill = Variable, group = Variable), stat = "identity", position = position_dodge(preserve = "single"), alpha=0.7) +
+  #geom_errorbar(aes(y = Period, xmin = low, xmax = high), width = 0.4, colour = "black", alpha = 0.9, size = 1.3) +
+  #geom_text(data = meta.speed.c, aes(y = Period, x = est, label=round(est, 2)), nudge_y = 0.3, nudge_x = 1.2, size = 4, color = "black", fontface = "bold") +
+  #geom_vline(xintercept = mean(t.akde$speed_mean), color = "red", size = 1) +
+  scale_fill_viridis(option = "F", discrete = T, "Variable: ") +
+  #scale_x_continuous(limits = c(0, max(meta.speed$high)+5)) +
+  ggtitle("Meta analysis - debiased population mean estimates - Relative Ratio\nRockefeller population") +
+  xlab("Standardized values [0-1]")+
+  ylab("") +
+  theme_bw() +
+  theme(axis.text = element_text(face="bold")) +
+  facet_wrap(~Sex)
+
+gr1 <- grid.arrange(g1, g2, ncol = 1)
+
+
+ggsave(plot = gr1,
+       filename = "Results/NEW_periods/meta_analysis_relative_ratio_all_variables.jpg",
+       width = 40,
+       height = 25,
+       units = "cm",
+       device = "jpeg",
+       dpi = 700)
 
 
 
-# Correaltion
+# Correlation
 # ------------------------------------------------------------------------------
 
 
